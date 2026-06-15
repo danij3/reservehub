@@ -8,7 +8,7 @@ reservas_bp = Blueprint('reservas', __name__)
 
 _SELECT = (
     'SELECT rv.id, rv.usuario_id, rv.recurso_id, rv.fecha_reserva, '
-    '       rv.hora_inicio, rv.hora_fin, rv.estado, rv.fecha_creacion, '
+    '       rv.hora_inicio, rv.hora_fin, rv.estado, '
     '       u.nombre AS usuario_nombre, '
     '       r.nombre AS recurso_nombre '
     'FROM reservas rv '

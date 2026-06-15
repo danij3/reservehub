@@ -24,7 +24,7 @@ def _own_or_admin(user_id):
 @admin_required
 def list_usuarios():
     rows = query_db(
-        'SELECT id, nombre, email, rol, fecha_creacion FROM usuarios ORDER BY id'
+        'SELECT id, nombre, email, rol FROM usuarios ORDER BY id'
     )
     return jsonify(rows), 200
 
@@ -37,7 +37,7 @@ def get_usuario(uid):
     if err:
         return err
     row = query_db(
-        'SELECT id, nombre, email, rol, fecha_creacion FROM usuarios WHERE id = %s',
+        'SELECT id, nombre, email, rol FROM usuarios WHERE id = %s',
         (uid,), one=True
     )
     if not row:
@@ -85,7 +85,7 @@ def update_usuario(uid):
         )
 
     updated = query_db(
-        'SELECT id, nombre, email, rol, fecha_creacion FROM usuarios WHERE id = %s',
+        'SELECT id, nombre, email, rol FROM usuarios WHERE id = %s',
         (uid,), one=True
     )
     return jsonify(updated), 200

@@ -75,6 +75,6 @@ conn.commit()
 cur.close()
 conn.close()
 
-print('✅  Seed completado.')
+print('Seed completado.')
 print('   admin@reservehub.com  / admin123  (rol: admin)')
 print('   user@example.com      / user123   (rol: user)')
