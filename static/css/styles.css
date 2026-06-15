@@ -1,0 +1,256 @@
+/* ============================================================
+   ReserveHub – Estilos completos
+   Conserva TODOS los selectores originales + añade auth/toast/mis-reservas
+   ============================================================ */
+
+:root {
+  --primary:       #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-light:      #f9fafb;
+  --text-dark:     #1f2937;
+  --text-muted:    #6b7280;
+  --border:        #e5e7eb;
+  --danger:        #dc2626;
+  --danger-hover:  #b91c1c;
+  --success:       #16a34a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0;
+    font-family: system-ui, -apple-system, sans-serif; }
+
+body { background-color: var(--bg-light); color: var(--text-dark); }
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+
+/* ── Header ──────────────────────────────────────────────── */
+.navbar {
+  background-color: #fff;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+  padding: 1rem 0;
+}
+.nav-content {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: .75rem;
+}
+.logo { color: var(--primary); font-size: 1.5rem; }
+
+.btn-text {
+  background: none; border: none;
+  font-weight: 600; cursor: pointer; color: var(--text-dark);
+}
+.btn-text:hover { color: var(--primary); }
+
+/* Info del usuario logado en el nav */
+.nav-user {
+  display: flex; align-items: center; gap: .75rem; flex-wrap: wrap;
+}
+.nav-user-name {
+  font-size: .875rem; font-weight: 600; color: var(--text-dark);
+}
+.btn-nav-secondary {
+  background: none; border: 1px solid var(--border);
+  border-radius: .5rem; padding: .35rem .85rem;
+  font-size: .875rem; font-weight: 600;
+  cursor: pointer; color: var(--text-dark);
+  transition: all .2s;
+}
+.btn-nav-secondary:hover {
+  background: var(--bg-light); border-color: var(--primary); color: var(--primary);
+}
+.btn-nav-danger {
+  background: none; border: 1px solid var(--danger);
+  border-radius: .5rem; padding: .35rem .85rem;
+  font-size: .875rem; font-weight: 600;
+  cursor: pointer; color: var(--danger);
+  transition: all .2s;
+}
+.btn-nav-danger:hover { background: var(--danger); color: #fff; }
+
+/* ── Categorías ──────────────────────────────────────────── */
+.filtros-section { margin: 2rem 0; }
+.filtros-section h2 { margin-bottom: 1rem; font-size: 1.25rem; }
+.categorias-scroll {
+  display: flex; gap: .75rem; overflow-x: auto;
+  padding-bottom: .5rem; scrollbar-width: none;
+}
+.categorias-scroll::-webkit-scrollbar { display: none; }
+.btn-categoria {
+  padding: .5rem 1.25rem; border: 1px solid var(--border);
+  background: #fff; border-radius: 999px; cursor: pointer;
+  white-space: nowrap; transition: all .3s ease;
+}
+.btn-categoria.activa {
+  background-color: var(--primary); color: #fff; border-color: var(--primary);
+}
+
+/* ── Grid de Recursos ────────────────────────────────────── */
+.grid-recursos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem; margin-bottom: 3rem;
+}
+
+/* ── Tarjetas ────────────────────────────────────────────── */
+.card {
+  background: #fff; border: 1px solid var(--border);
+  border-radius: .75rem; padding: 1.5rem;
+  display: flex; flex-direction: column; justify-content: space-between;
+  transition: transform .3s ease, box-shadow .3s ease;
+  animation: fadeIn .4s ease forwards;
+}
+.card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,.1); }
+.card-header {
+  display: flex; justify-content: space-between; align-items: start;
+  margin-bottom: .5rem;
+}
+.badge { padding: .25rem .5rem; border-radius: .25rem; font-size: .75rem; font-weight: bold; }
+.badge.disponible { background-color: #dcfce7; color: #15803d; }
+.badge.ocupado    { background-color: #fee2e2; color: #b91c1c; }
+.card-desc { color: var(--text-muted); font-size: .875rem; margin: 1rem 0; }
+
+.btn-card {
+  width: 100%; padding: .75rem; border: none;
+  border-radius: .5rem; font-weight: 600; cursor: pointer; transition: background .3s;
+}
+.btn-card:not([disabled]) { background-color: #eff6ff; color: var(--primary); }
+.btn-card:not([disabled]):hover { background-color: var(--primary); color: #fff; }
+.btn-card[disabled] { background-color: var(--border); color: var(--text-muted); cursor: not-allowed; }
+
+/* ── Modal base ──────────────────────────────────────────── */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; backdrop-filter: blur(4px);
+  padding: 1rem; opacity: 1; transition: opacity .3s ease;
+}
+.modal.oculto { opacity: 0; pointer-events: none; }
+.modal-content {
+  background: #fff; border-radius: 1rem; padding: 1.5rem;
+  width: 100%; max-width: 400px;
+  transform: translateY(0); transition: transform .3s ease;
+}
+.modal.oculto .modal-content { transform: translateY(20px); }
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 1.5rem;
+}
+.btn-close {
+  background: none; border: none; font-size: 1.5rem;
+  cursor: pointer; color: var(--text-muted);
+}
+.recurso-info-box {
+  background: var(--bg-light); padding: 1rem;
+  border-radius: .5rem; margin-bottom: 1.5rem;
+}
+
+/* ── Formularios ─────────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; font-size: .875rem; font-weight: 500; margin-bottom: .5rem; }
+.form-group input, .form-group select {
+  width: 100%; padding: .5rem; border: 1px solid var(--border);
+  border-radius: .5rem; outline: none; font-size: .95rem;
+}
+.form-group input:focus, .form-group select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,.2);
+}
+.btn-primary {
+  width: 100%; background: var(--primary); color: #fff;
+  padding: .75rem; border: none; border-radius: .5rem;
+  font-weight: bold; cursor: pointer; margin-top: 1rem;
+  transition: background .3s;
+}
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+
+/* ── Modal Auth (login / registro) ─────────────────────────── */
+.modal-content.wide { max-width: 440px; }
+
+.auth-tabs {
+  display: flex; gap: 0; border-bottom: 2px solid var(--border);
+  margin-bottom: 1.5rem;
+}
+.auth-tab {
+  flex: 1; background: none; border: none;
+  padding: .6rem; font-weight: 600; cursor: pointer;
+  color: var(--text-muted); font-size: .95rem;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all .2s;
+}
+.auth-tab.activa { color: var(--primary); border-bottom-color: var(--primary); }
+.auth-tab:hover:not(.activa) { color: var(--text-dark); }
+
+.auth-panel { display: none; }
+.auth-panel.activo { display: block; }
+
+.form-msg {
+  padding: .6rem .75rem; border-radius: .5rem;
+  font-size: .875rem; margin-bottom: .75rem; display: none;
+}
+.form-msg.error   { background: #fee2e2; color: #b91c1c; display: block; }
+.form-msg.success { background: #dcfce7; color: #15803d; display: block; }
+
+/* ── Modal Mis Reservas ──────────────────────────────────── */
+.modal-content.reservas-content { max-width: 560px; }
+
+.reservas-list { display: flex; flex-direction: column; gap: .75rem; max-height: 400px; overflow-y: auto; }
+.reserva-item {
+  border: 1px solid var(--border); border-radius: .5rem;
+  padding: 1rem; display: flex; justify-content: space-between; align-items: center; gap: .5rem;
+}
+.reserva-info { flex: 1; min-width: 0; }
+.reserva-nombre { font-weight: 600; margin-bottom: .25rem; }
+.reserva-detalle { font-size: .8rem; color: var(--text-muted); }
+.reserva-estado {
+  padding: .2rem .5rem; border-radius: .25rem; font-size: .75rem; font-weight: bold;
+  white-space: nowrap;
+}
+.reserva-estado.pendiente   { background: #fef9c3; color: #854d0e; }
+.reserva-estado.confirmada  { background: #dcfce7; color: #15803d; }
+.reserva-estado.cancelada   { background: #f1f5f9; color: var(--text-muted); }
+
+.btn-cancelar {
+  background: none; border: 1px solid var(--danger); color: var(--danger);
+  border-radius: .375rem; padding: .3rem .65rem; font-size: .8rem;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: all .2s;
+}
+.btn-cancelar:hover { background: var(--danger); color: #fff; }
+
+.empty-state {
+  text-align: center; color: var(--text-muted); padding: 2rem 1rem;
+  font-size: .95rem;
+}
+
+/* ── Toast notifications ──────────────────────────────────── */
+#toast-container {
+  position: fixed; bottom: 1.5rem; right: 1.5rem;
+  z-index: 999; display: flex; flex-direction: column; gap: .5rem;
+}
+.toast {
+  padding: .75rem 1.25rem; border-radius: .5rem; color: #fff;
+  font-size: .9rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  animation: slideIn .3s ease;
+  min-width: 220px; max-width: 340px;
+}
+.toast.success { background: var(--success); }
+.toast.error   { background: var(--danger); }
+.toast.info    { background: var(--primary); }
+
+/* ── Spinner de carga ─────────────────────────────────────── */
+.spinner-overlay {
+  position: fixed; inset: 0; background: rgba(255,255,255,.6);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.spinner {
+  width: 2.5rem; height: 2.5rem; border: 4px solid var(--border);
+  border-top-color: var(--primary); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+/* ── Animaciones ──────────────────────────────────────────── */
+@keyframes fadeIn  { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(30px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes spin    { to { transform: rotate(360deg); } }
