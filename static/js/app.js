@@ -1,16 +1,13 @@
-/* ============================================================
-   app.js – ReserveHub Frontend (conectado a la API real)
-   Autenticación: Bearer Token almacenado en localStorage.
-   ============================================================ */
+// app.js - Lógica del frontend: llamadas a la API, renderizado y eventos
 
-const API = '/api';   // prefijo de la API (relativo al mismo origen)
+const API = '/api';
 
-// ── Estado global ─────────────────────────────────────────────
+// variables globales
 let recursosGlobales   = [];
 let categoriasGlobales = [];
 let recursoSeleccionado = null;
 
-// ── Auth helpers ──────────────────────────────────────────────
+// funciones de autenticación: guardar y leer el token de localStorage
 function getToken()  { return localStorage.getItem('reservehub_token'); }
 function getUsuario(){ return JSON.parse(localStorage.getItem('reservehub_user') || 'null'); }
 
@@ -32,7 +29,7 @@ function authHeaders() {
            : { 'Content-Type': 'application/json' };
 }
 
-// ── Fetch wrapper ─────────────────────────────────────────────
+// wrapper de fetch que añade el token y gestiona errores de sesión
 async function apiFetch(path, options = {}) {
   options.headers = { ...authHeaders(), ...(options.headers || {}) };
   const res = await fetch(API + path, options);
@@ -49,7 +46,7 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
-// ── Toast ─────────────────────────────────────────────────────
+// muestra un mensaje emergente temporal
 function mostrarToast(msg, tipo = 'info', duracion = 3500) {
   const container = document.getElementById('toast-container');
   const div = document.createElement('div');
@@ -59,7 +56,7 @@ function mostrarToast(msg, tipo = 'info', duracion = 3500) {
   setTimeout(() => div.remove(), duracion);
 }
 
-// ── Navbar ────────────────────────────────────────────────────
+// actualiza el navbar según si hay sesión activa o no
 function actualizarNavbar() {
   const user = getUsuario();
   document.getElementById('nav-guest').style.display = user ? 'none' : '';
@@ -67,7 +64,7 @@ function actualizarNavbar() {
   if (user) document.getElementById('nav-nombre').textContent = `Hola, ${user.nombre}`;
 }
 
-// ── Categorías ────────────────────────────────────────────────
+// carga y renderiza los botones de categoría
 async function cargarCategorias() {
   try {
     const cats = await apiFetch('/categorias');
@@ -91,10 +88,10 @@ function renderCategorias(categoriaActiva) {
   });
 }
 
-// ── Recursos ──────────────────────────────────────────────────
+// carga y renderiza las tarjetas de recursos
 async function fetchRecursos() {
   const res = await apiFetch('/recursos');
-  // La API devuelve { data: [...], total: N }
+  // la API devuelve { data: [...], total: N }
   return Array.isArray(res) ? res : (res.data || []);
 }
 
@@ -142,9 +139,9 @@ function renderRecursos(recursos) {
   });
 }
 
-// ── Modal Reserva ─────────────────────────────────────────────
+// abre el modal de reserva para el recurso seleccionado
 window.abrirModal = function(idRecurso) {
-  // R1 – verificar autenticación
+  // si no hay sesión, pedir que inicie sesión antes de reservar
   if (!getToken()) {
     mostrarToast('Debes iniciar sesión para reservar.', 'info');
     abrirModalAuth('login');
@@ -177,7 +174,7 @@ document.getElementById('modal-reserva').onclick = e => {
   if (e.target === document.getElementById('modal-reserva')) cerrarModal();
 };
 
-// ── POST reserva ──────────────────────────────────────────────
+// envía la reserva a la API y cierra el modal si todo va bien
 async function postReserva(datos) {
   return apiFetch('/reservas', {
     method: 'POST',
@@ -212,7 +209,7 @@ document.getElementById('form-reserva').onsubmit = async e => {
   }
 };
 
-// ── Modal Auth ────────────────────────────────────────────────
+// modal de login/registro
 function abrirModalAuth(tab = 'login') {
   cambiarTab(tab);
   document.getElementById('modal-auth').classList.remove('oculto');
@@ -239,7 +236,7 @@ function cambiarTab(tab) {
   document.getElementById('auth-titulo').textContent = isLogin ? 'Acceder' : 'Crear Cuenta';
 }
 
-// ── Login ─────────────────────────────────────────────────────
+// login: llama a /api/auth/login y guarda el token si va bien
 async function submitLogin(e) {
   e.preventDefault();
   const btn = document.getElementById('btn-login');
@@ -264,7 +261,7 @@ async function submitLogin(e) {
   }
 }
 
-// ── Registro ──────────────────────────────────────────────────
+// registro de nuevo usuario
 async function submitRegister(e) {
   e.preventDefault();
   const btn = document.getElementById('btn-register');
@@ -289,7 +286,7 @@ async function submitRegister(e) {
   }
 }
 
-// ── Logout ────────────────────────────────────────────────────
+// cierra sesión en el servidor y limpia el token local
 async function cerrarSesion() {
   try {
     await apiFetch('/auth/logout', { method: 'POST' });
@@ -298,7 +295,7 @@ async function cerrarSesion() {
   mostrarToast('Sesión cerrada.', 'info');
 }
 
-// ── Mis Reservas ──────────────────────────────────────────────
+// modal "Mis reservas": carga y muestra las reservas del usuario
 async function abrirMisReservas() {
   document.getElementById('reservas-list').innerHTML =
     '<p class="empty-state">Cargando…</p>';
@@ -362,7 +359,7 @@ window.cancelarReserva = async function(id) {
   }
 };
 
-// ── Utilidad de mensajes en formularios ───────────────────────
+// muestra un mensaje de error o éxito debajo de un formulario
 function setFormMsg(id, msg, tipo) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -370,7 +367,7 @@ function setFormMsg(id, msg, tipo) {
   el.className = `form-msg${msg ? ' ' + tipo : ''}`;
 }
 
-// ── Init ──────────────────────────────────────────────────────
+// arranque: carga categorías y recursos al abrir la página
 async function init() {
   actualizarNavbar();
   await cargarCategorias();

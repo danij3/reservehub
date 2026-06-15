@@ -1,7 +1,4 @@
-"""
-reservas.py – Blueprint /api/reservas
-Implementa reglas R1–R6 del documento de endpoints.
-"""
+# reservas.py - Gestión de reservas. Usuarios pueden crear y cancelar las suyas; admin tiene acceso total.
 from flask import Blueprint, request, jsonify, g
 
 from db import query_db
@@ -20,7 +17,7 @@ _SELECT = (
 )
 
 
-# ── GET /api/reservas  ────────────────────────────────────────
+# admin ve todas las reservas; usuario normal solo ve las suyas
 
 @reservas_bp.route('', methods=['GET'])
 @login_required
@@ -36,7 +33,7 @@ def list_reservas():
     return jsonify(rows), 200
 
 
-# ── GET /api/reservas/mis-reservas  ──────────────────────────
+# devuelve solo las reservas del usuario autenticado
 
 @reservas_bp.route('/mis-reservas', methods=['GET'])
 @login_required
@@ -49,7 +46,7 @@ def mis_reservas():
     return jsonify(rows), 200
 
 
-# ── GET /api/reservas/<id>  ───────────────────────────────────
+# devuelve una reserva por id
 
 @reservas_bp.route('/<int:rid>', methods=['GET'])
 @login_required
@@ -63,7 +60,7 @@ def get_reserva(rid):
     return jsonify(row), 200
 
 
-# ── POST /api/reservas  ───────────────────────────────────────
+# crea una nueva reserva
 
 @reservas_bp.route('', methods=['POST'])
 @login_required
@@ -76,7 +73,7 @@ def create_reserva():
     hora_inicio   = data.get('hora_inicio')
     hora_fin      = data.get('hora_fin')
 
-    # R3 – campos obligatorios
+    # comprobar campos obligatorios
     if not all([recurso_id, fecha_reserva, hora_inicio, hora_fin]):
         return jsonify({'error': 'recurso_id, fecha_reserva, hora_inicio y hora_fin son obligatorios'}), 400
 
@@ -93,11 +90,11 @@ def create_reserva():
     if not recurso:
         return jsonify({'error': 'Recurso no encontrado'}), 404
 
-    # R2 – recurso debe estar disponible
+    # verificar que el recurso esté disponible para reservas
     if not recurso['disponible']:
         return jsonify({'error': 'El recurso no está disponible para reservas'}), 400
 
-    # R5 – detectar solapamientos (excluir canceladas)
+    # comprobar que no haya otra reserva en ese mismo horario
     solapamiento = query_db(
         'SELECT id FROM reservas '
         'WHERE recurso_id=%s AND fecha_reserva=%s AND estado != "cancelada" '
@@ -117,7 +114,7 @@ def create_reserva():
     return jsonify(row), 201
 
 
-# ── PATCH /api/reservas/<id>/estado  ─────────────────────────
+# cambia el estado de una reserva (pendiente / confirmada / cancelada)
 
 @reservas_bp.route('/<int:rid>/estado', methods=['PATCH'])
 @login_required
@@ -127,7 +124,7 @@ def cambiar_estado(rid):
     if not row:
         return jsonify({'error': 'Reserva no encontrada'}), 404
 
-    # R6 – usuario solo puede cancelar sus propias reservas; admin puede todo
+    # los usuarios solo pueden modificar sus propias reservas
     if u['rol'] != 'admin' and row['usuario_id'] != u['id']:
         return jsonify({'error': 'Acceso denegado'}), 403
 
@@ -138,7 +135,7 @@ def cambiar_estado(rid):
     if nuevo_estado not in estados_validos:
         return jsonify({'error': f'Estado inválido. Valores permitidos: {", ".join(estados_validos)}'}), 400
 
-    # Un usuario normal solo puede cancelar
+    # un usuario normal no puede confirmar, solo cancelar
     if u['rol'] != 'admin' and nuevo_estado != 'cancelada':
         return jsonify({'error': 'Solo puedes cancelar tu propia reserva'}), 403
 
@@ -147,7 +144,7 @@ def cambiar_estado(rid):
     return jsonify(updated), 200
 
 
-# ── DELETE /api/reservas/<id>  (solo admin) ──────────────────
+# borra una reserva (solo admin)
 
 @reservas_bp.route('/<int:rid>', methods=['DELETE'])
 @admin_required

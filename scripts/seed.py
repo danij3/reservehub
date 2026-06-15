@@ -1,13 +1,6 @@
-"""
-seed.py – Datos iniciales de ReserveHub.
-
-Uso:
-    cd reservehub/
-    python scripts/seed.py
-
-Requiere que el schema ya esté aplicado:
-    mysql -u root -p < scripts/schema.sql
-"""
+# seed.py - Inserta datos de prueba en la BD
+# Usar desde la carpeta reservehub/: python scripts/seed.py
+# El schema tiene que estar aplicado antes: mysql -u root -p < scripts/schema.sql
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
@@ -30,7 +23,7 @@ print('DB_CONFIG =', DB_CONFIG)
 conn = mysql.connector.connect(**DB_CONFIG)
 cur  = conn.cursor()
 
-# ── Categorías ────────────────────────────────────────────────
+# categorías
 cur.executemany(
     'INSERT IGNORE INTO categorias (nombre, descripcion) VALUES (%s, %s)',
     [
@@ -41,7 +34,7 @@ cur.executemany(
     ]
 )
 
-# ── Usuarios – hashes generados dinámicamente con werkzeug ────
+# usuarios de prueba con contraseñas hasheadas
 admin_hash = generate_password_hash('admin123')
 user_hash  = generate_password_hash('user123')
 
@@ -54,7 +47,7 @@ cur.execute(
     ('Usuario Prueba', 'user@example.com', user_hash, 'user')
 )
 
-# ── Recursos (subquery dinámica por nombre de categoría) ──────
+# recursos de ejemplo, asignados a las categorías por nombre
 recursos = [
     ('Sala de Estudio A',   'Mesa redonda, pizarra, 4 sillas',    True,  4,   'Salas de Estudio'),
     ('Laboratorio Cisco',   'Racks con routers y switches',        True,  15,  'Laboratorios'),
@@ -71,7 +64,7 @@ for nombre, desc, disponible, capacidad, cat_nombre in recursos:
         (nombre, desc, disponible, capacidad, cat_nombre)
     )
 
-# ── Reserva de ejemplo (usuario 2 → recurso 1) ───────────────
+# reserva de ejemplo para el usuario de prueba
 cur.execute(
     'INSERT IGNORE INTO reservas '
     '(usuario_id, recurso_id, fecha_reserva, hora_inicio, hora_fin, estado) '

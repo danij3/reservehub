@@ -1,7 +1,4 @@
-"""
-categorias.py – Blueprint /api/categorias
-GET público. POST/PUT/DELETE solo admin.
-"""
+# categorias.py - Gestión de categorías. Cualquiera puede leerlas; solo admin puede crearlas, editarlas o borrarlas.
 from flask import Blueprint, request, jsonify
 
 from db import query_db

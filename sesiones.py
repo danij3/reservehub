@@ -1,4 +1,4 @@
-"""sesiones.py - Blueprint /api/sesiones (admin)"""
+# sesiones.py - Permite al admin ver y forzar el cierre de sesiones activas
 from datetime import datetime
 from flask import Blueprint, jsonify
 from db import query_db

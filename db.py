@@ -1,6 +1,4 @@
-"""
-db.py – Gestión de la conexión MySQL y utilidades de consulta.
-"""
+# db.py - Conexión a MySQL y función query_db para hacer consultas
 import os
 from datetime import timedelta, date, datetime
 

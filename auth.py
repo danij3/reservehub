@@ -1,7 +1,4 @@
-"""
-auth.py – Blueprint /api/auth  +  decoradores de autenticación.
-Tokens opacos almacenados en tabla sesiones.
-"""
+# auth.py - Login, registro y logout. Los tokens se guardan en la tabla sesiones.
 import re
 import secrets
 import functools
@@ -17,7 +14,7 @@ auth_bp = Blueprint('auth', __name__)
 TOKEN_EXPIRY_HOURS = 24
 
 
-# ── Helpers ────────────────────────────────────────────────────
+# helpers de autenticación
 
 def get_token_from_header():
     header = request.headers.get('Authorization', '')
@@ -65,7 +62,7 @@ def admin_required(f):
     return decorated
 
 
-# ── Endpoints ──────────────────────────────────────────────────
+# endpoints
 
 @auth_bp.route('/register', methods=['POST'])
 def register():

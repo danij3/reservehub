@@ -1,8 +1,4 @@
-"""
-recursos.py – Blueprint /api/recursos
-GET público. POST/PUT/DELETE/PATCH solo admin.
-GET /<id>/disponibilidad requiere token.
-"""
+# recursos.py - CRUD de recursos. Lectura pública; escritura y borrado solo para admin.
 from flask import Blueprint, request, jsonify, g
 
 from db import query_db
@@ -10,7 +6,7 @@ from auth import admin_required, login_required
 
 recursos_bp = Blueprint('recursos', __name__)
 
-# ── SELECT con JOIN para incluir nombre de categoría ──────────
+# consulta base con JOIN para incluir el nombre de la categoría
 
 _SELECT = (
     'SELECT r.id, r.nombre, r.descripcion, r.disponible, r.capacidad, '
@@ -20,7 +16,7 @@ _SELECT = (
 )
 
 
-# ── GET /api/recursos  (público, con filtros) ─────────────────
+# devuelve la lista de recursos, con filtros opcionales por categoría y disponibilidad
 
 @recursos_bp.route('', methods=['GET'])
 def list_recursos():
@@ -45,7 +41,7 @@ def list_recursos():
     return jsonify({'data': rows, 'total': len(rows)}), 200
 
 
-# ── GET /api/recursos/<id>  (público) ─────────────────────────
+# devuelve un recurso por id
 
 @recursos_bp.route('/<int:rid>', methods=['GET'])
 def get_recurso(rid):
@@ -55,7 +51,7 @@ def get_recurso(rid):
     return jsonify(row), 200
 
 
-# ── POST /api/recursos  (admin) ───────────────────────────────
+# crea un nuevo recurso
 
 @recursos_bp.route('', methods=['POST'])
 @admin_required
@@ -82,7 +78,7 @@ def create_recurso():
     return jsonify(row), 201
 
 
-# ── PUT /api/recursos/<id>  (admin) ──────────────────────────
+# actualiza los datos de un recurso
 
 @recursos_bp.route('/<int:rid>', methods=['PUT'])
 @admin_required
@@ -113,7 +109,7 @@ def update_recurso(rid):
     return jsonify(updated), 200
 
 
-# ── DELETE /api/recursos/<id>  (admin) ───────────────────────
+# borra un recurso
 
 @recursos_bp.route('/<int:rid>', methods=['DELETE'])
 @admin_required
@@ -124,7 +120,7 @@ def delete_recurso(rid):
     return jsonify({'message': 'Recurso eliminado'}), 200
 
 
-# ── PATCH /api/recursos/<id>/disponible  (admin) ─────────────
+# activa o desactiva la disponibilidad de un recurso
 
 @recursos_bp.route('/<int:rid>/disponible', methods=['PATCH'])
 @admin_required
@@ -142,7 +138,7 @@ def patch_disponible(rid):
     return jsonify(updated), 200
 
 
-# ── GET /api/recursos/<id>/disponibilidad  (token) ────────────
+# devuelve los horarios ocupados de un recurso en una fecha concreta
 
 @recursos_bp.route('/<int:rid>/disponibilidad', methods=['GET'])
 @login_required

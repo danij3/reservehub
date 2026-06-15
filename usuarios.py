@@ -1,7 +1,4 @@
-"""
-usuarios.py – Blueprint /api/usuarios
-Permisos: Admin puede todo. El propio usuario puede ver/editar su perfil.
-"""
+# usuarios.py - CRUD de usuarios. Admin tiene acceso total; cada usuario puede editar su propio perfil.
 from flask import Blueprint, request, jsonify, g
 from werkzeug.security import generate_password_hash
 
@@ -21,7 +18,7 @@ def _own_or_admin(user_id):
     return current, None
 
 
-# ── GET /api/usuarios  (solo admin) ────────────────────────────
+# lista todos los usuarios (solo admin)
 
 @usuarios_bp.route('', methods=['GET'])
 @admin_required
@@ -32,7 +29,7 @@ def list_usuarios():
     return jsonify(rows), 200
 
 
-# ── GET /api/usuarios/<id> ─────────────────────────────────────
+# devuelve un usuario por id
 
 @usuarios_bp.route('/<int:uid>', methods=['GET'])
 def get_usuario(uid):
@@ -48,7 +45,7 @@ def get_usuario(uid):
     return jsonify(row), 200
 
 
-# ── PUT /api/usuarios/<id> ─────────────────────────────────────
+# actualiza nombre, email o contraseña de un usuario
 
 @usuarios_bp.route('/<int:uid>', methods=['PUT'])
 def update_usuario(uid):
@@ -94,7 +91,7 @@ def update_usuario(uid):
     return jsonify(updated), 200
 
 
-# ── DELETE /api/usuarios/<id>  (solo admin) ───────────────────
+# elimina un usuario (solo admin)
 
 @usuarios_bp.route('/<int:uid>', methods=['DELETE'])
 @admin_required
@@ -106,7 +103,7 @@ def delete_usuario(uid):
     return jsonify({'message': 'Usuario eliminado'}), 200
 
 
-# ── PATCH /api/usuarios/<id>/rol  (solo admin) ────────────────
+# cambia el rol de un usuario (solo admin)
 
 @usuarios_bp.route('/<int:uid>/rol', methods=['PATCH'])
 @admin_required

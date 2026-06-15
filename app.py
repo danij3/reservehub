@@ -1,10 +1,5 @@
-"""
-app.py – Punto de entrada de ReserveHub.
-
-Lanza con:
-    python app.py                  (desarrollo)
-    gunicorn app:app               (producción)
-"""
+# app.py - Punto de entrada de la aplicación
+# Arrancar con: python app.py
 import os
 from flask import Flask, send_from_directory
 from flask_cors import CORS
