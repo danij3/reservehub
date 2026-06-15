@@ -33,6 +33,7 @@ reservehub/
 ├── sesiones.py          ← gestión de sesiones activas (admin)
 ├── requirements.txt     ← dependencias Python
 ├── .env.example         ← plantilla de variables de entorno
+├── imgs/                ← imágenes de las salas (servidas en /imgs/<nombre>)
 ├── static/
 │   ├── css/styles.css
 │   └── js/app.js
@@ -199,27 +200,71 @@ SELECT * FROM usuarios\G
 
 ## 5. Modelo de datos
 
+El diagrama sigue la notación **UML ER** (crow's foot). Renderiza en GitHub y en cualquier editor compatible con Mermaid.
+
+```mermaid
+erDiagram
+    USUARIOS {
+        int     id             PK
+        varchar nombre
+        varchar email          UK
+        varchar password
+        varchar rol
+        datetime fecha_creacion
+    }
+
+    CATEGORIAS {
+        int     id          PK
+        varchar nombre      UK
+        text    descripcion
+    }
+
+    RECURSOS {
+        int     id           PK
+        varchar nombre
+        text    descripcion
+        boolean disponible
+        int     capacidad
+        int     categoria_id FK
+    }
+
+    RESERVAS {
+        int     id            PK
+        int     usuario_id    FK
+        int     recurso_id    FK
+        date    fecha_reserva
+        time    hora_inicio
+        time    hora_fin
+        varchar estado
+    }
+
+    SESIONES {
+        int      id               PK
+        int      usuario_id       FK
+        varchar  token            UK
+        datetime fecha_expiration
+        datetime created_at
+    }
+
+    CATEGORIAS  ||--o{ RECURSOS  : "agrupa"
+    USUARIOS    ||--o{ RESERVAS  : "realiza"
+    RECURSOS    ||--o{ RESERVAS  : "es reservado en"
+    USUARIOS    ||--o{ SESIONES  : "tiene activas"
 ```
-┌──────────────┐        ┌──────────────────┐        ┌──────────────┐
-│   Usuario    │──1:N──▶│     Reserva      │◀──N:1──│   Recurso    │
-│──────────────│        │──────────────────│        │──────────────│
-│ id           │        │ id               │        │ id           │
-│ nombre       │        │ usuario_id (FK)  │        │ nombre       │
-│ email        │        │ recurso_id (FK)  │        │ descripcion  │
-│ password     │        │ fecha_reserva    │        │ disponible   │
-│ rol          │        │ hora_inicio      │        │ capacidad    │
-└──────────────┘        │ hora_fin         │        │ categoria_id │
-        │               │ estado           │        └──────┬───────┘
-       1:N              └──────────────────┘               │ N:1
-┌──────┴────────┐                                  ┌───────┴───────┐
-│    Sesion     │                                  │   Categoria   │
-│───────────────│                                  │───────────────│
-│ id            │                                  │ id            │
-│ usuario_id FK │                                  │ nombre        │
-│ token         │                                  │ descripcion   │
-│ fecha_expiration                                 └───────────────┘
-└───────────────┘
-```
+
+**Cardinalidades:**
+- Una categoría puede tener cero o más recursos (`||--o{`).
+- Un usuario puede tener cero o más reservas y cero o más sesiones activas.
+- Un recurso puede aparecer en cero o más reservas.
+
+**Integridad referencial (ON DELETE):**
+- `reservas` → CASCADE en `usuario_id` y `recurso_id`: si se elimina un usuario o recurso, sus reservas se eliminan también.
+- `sesiones` → CASCADE en `usuario_id`: las sesiones se eliminan al borrar el usuario.
+- `recursos` → RESTRICT en `categoria_id`: no se puede borrar una categoría que tenga recursos asociados.
+
+**Índices adicionales:**
+- `idx_fecha_recurso (fecha_reserva, recurso_id)` en `reservas` → acelera la comprobación de solapamiento de franjas.
+- `idx_token` y `idx_expiration` en `sesiones` → acelera la validación del Bearer token en cada petición.
 
 ---
 
@@ -304,108 +349,229 @@ Las contraseñas se almacenan hasheadas con PBKDF2-SHA256 y nunca se devuelven e
 
 ## 8. Despliegue en Azure
 
-### Requisitos previos
+El despliegue usa una máquina virtual Ubuntu en Azure con NGINX como reverse proxy y gunicorn como servidor WSGI. El código se trae al servidor clonando el repositorio de GitHub.
 
-- Tener instalado [Azure CLI](https://aka.ms/installazurecli)
-- Haber iniciado sesión: `az login`
+---
 
-### Paso 1 — Crear el grupo de recursos y el App Service
+### Paso 1 — Crear la máquina virtual en Azure
+
+1. Entra en [portal.azure.com](https://portal.azure.com) con tu cuenta Azure for Students.
+2. Crea un **Resource Group** (ej. `rg-reservehub`, región Spain Central).
+3. Crea una **Virtual Machine**:
+   - Imagen: **Ubuntu Server 22.04 LTS – x64 Gen2**
+   - Tamaño: **Standard_B2ats_v2** (elegible para cuenta gratuita)
+   - Autenticación: usuario + contraseña (anótalos)
+   - Puertos de entrada: **SSH (22)**, **HTTP (80)**, **HTTPS (443)**
+4. Una vez creada, ve a la VM → **DNS name** → asigna un nombre DNS (ej. `reservehub`). Quedará algo como `reservehub.spaincentral.cloudapp.azure.com`.
+
+---
+
+### Paso 2 — Conectar por SSH
+
+Desde terminal (o PuTTY en Windows usando la IP pública de la VM):
 
 ```bash
-az group create --name rg-reservehub --location westeurope
-
-az appservice plan create \
-  --name plan-reservehub \
-  --resource-group rg-reservehub \
-  --sku B1 --is-linux
-
-az webapp create \
-  --resource-group rg-reservehub \
-  --plan plan-reservehub \
-  --name reservehub-app \
-  --runtime "PYTHON:3.11"
+ssh administrador@reservehub.spaincentral.cloudapp.azure.com
 ```
 
-### Paso 2 — Crear la base de datos MySQL en Azure
+---
+
+### Paso 3 — Actualizar el sistema e instalar dependencias
 
 ```bash
-az mysql flexible-server create \
-  --resource-group rg-reservehub \
-  --name mysql-reservehub \
-  --admin-user adminuser \
-  --admin-password "MiPassword123!" \
-  --sku-name Standard_B1ms \
-  --tier Burstable \
-  --version 8.0
-
-az mysql flexible-server db create \
-  --resource-group rg-reservehub \
-  --server-name mysql-reservehub \
-  --database-name reservehub
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y nginx git python3 python3-pip python3-venv mysql-server certbot python3-certbot-nginx
 ```
 
-### Paso 3 — Configurar las variables de entorno
+Habilitar NGINX para que arranque automáticamente:
 
 ```bash
-az webapp config appsettings set \
-  --resource-group rg-reservehub \
-  --name reservehub-app \
-  --settings \
-    FLASK_ENV=production \
-    SECRET_KEY="clave-muy-larga-y-secreta" \
-    DB_HOST="mysql-reservehub.mysql.database.azure.com" \
-    DB_USER="adminuser" \
-    DB_PASS="MiPassword123!" \
-    DB_NAME="reservehub" \
-    SCM_DO_BUILD_DURING_DEPLOYMENT=true
+sudo systemctl enable nginx
+sudo systemctl start nginx
 ```
 
-### Paso 4 — Configurar el comando de arranque
+---
 
-Este comando le indica a Azure que use gunicorn para servir la app automáticamente, sin necesidad de ejecutar nada manualmente:
+### Paso 4 — Configurar SSL con Let's Encrypt
 
 ```bash
-az webapp config set \
-  --resource-group rg-reservehub \
-  --name reservehub-app \
-  --startup-file "gunicorn --bind=0.0.0.0:8000 --workers=2 --timeout=120 app:app"
+sudo certbot --nginx -d reservehub.spaincentral.cloudapp.azure.com
 ```
 
-### Paso 5 — Aplicar el schema y seed en la BD de Azure
+Certbot modifica la configuración de NGINX y gestiona la renovación automática del certificado.
 
-Antes de este paso, permite tu IP en el firewall del servidor MySQL desde el portal de Azure (MySQL → Networking → Add current client IP).
+---
+
+### Paso 5 — Configurar MySQL
 
 ```bash
-# Aplicar el schema
-mysql -h mysql-reservehub.mysql.database.azure.com \
-      -u adminuser -p reservehub < scripts/schema.sql
+sudo mysql_secure_installation
+```
 
-# Cargar datos de prueba
-DB_HOST=mysql-reservehub.mysql.database.azure.com \
-DB_USER=adminuser \
-DB_PASS=MiPassword123! \
-DB_NAME=reservehub \
+Crear la base de datos y el usuario:
+
+```bash
+sudo mysql -u root -p
+```
+
+```sql
+CREATE DATABASE reservehub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'reservehub_user'@'localhost' IDENTIFIED BY 'tu_password_aqui';
+GRANT ALL PRIVILEGES ON reservehub.* TO 'reservehub_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+---
+
+### Paso 6 — Configurar Git y clonar el repositorio
+
+Configura tu identidad y genera una clave SSH para autenticarte con GitHub:
+
+```bash
+git config --global user.name "Tu Nombre"
+git config --global user.email "tuemail@ejemplo.com"
+
+ssh-keygen -t ed25519 -C "tuemail@ejemplo.com"
+cat ~/.ssh/id_ed25519.pub
+```
+
+Copia la clave pública y añádela en GitHub → Settings → SSH and GPG keys → New SSH key.
+
+Clona el repositorio:
+
+```bash
+cd ~
+git clone git@github.com:tu-usuario/ProyectoFinal_ATSWM.git
+```
+
+---
+
+### Paso 7 — Instalar dependencias Python y configurar el entorno
+
+```bash
+cd ~/ProyectoFinal_ATSWM/reservehub
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+Crea el archivo `.env` con los datos de conexión:
+
+```bash
+nano .env
+```
+
+Contenido:
+
+```
+FLASK_ENV=production
+SECRET_KEY=una_clave_secreta_larga_y_aleatoria
+DB_HOST=localhost
+DB_USER=reservehub_user
+DB_PASS=tu_password_aqui
+DB_NAME=reservehub
+```
+
+---
+
+### Paso 8 — Aplicar el schema y cargar datos de prueba
+
+```bash
+mysql -u reservehub_user -p reservehub < scripts/schema.sql
 python scripts/seed.py
 ```
 
-### Paso 6 — Subir el código
+---
+
+### Paso 9 — Configurar gunicorn como servicio systemd
+
+Crea el archivo de servicio:
 
 ```bash
-# Desde la carpeta reservehub/
-zip -r deploy.zip . -x "venv/*" ".git/*" "__pycache__/*" "*.pyc"
-
-az webapp deployment source config-zip \
-  --resource-group rg-reservehub \
-  --name reservehub-app \
-  --src deploy.zip
+sudo nano /etc/systemd/system/reservehub.service
 ```
+
+Contenido:
+
+```ini
+[Unit]
+Description=ReserveHub gunicorn
+After=network.target
+
+[Service]
+User=administrador
+WorkingDirectory=/home/administrador/ProyectoFinal_ATSWM/reservehub
+ExecStart=/home/administrador/ProyectoFinal_ATSWM/reservehub/venv/bin/gunicorn \
+          --workers 2 --bind 127.0.0.1:8000 --timeout 120 app:app
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Activa e inicia el servicio:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable reservehub
+sudo systemctl start reservehub
+```
+
+Comprueba que está corriendo:
+
+```bash
+sudo systemctl status reservehub
+```
+
+---
+
+### Paso 10 — Configurar NGINX como reverse proxy
+
+Edita el sitio por defecto de NGINX:
+
+```bash
+sudo nano /etc/nginx/sites-available/default
+```
+
+Reemplaza el bloque `server` existente con:
+
+```nginx
+server {
+    server_name reservehub.spaincentral.cloudapp.azure.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+> Si certbot ya modificó este archivo con el bloque SSL, solo añade el `proxy_pass` dentro del `location /` del bloque de puerto 443. No borres las líneas de certbot.
+
+Verifica la configuración y recarga NGINX:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
 
 ### Resultado
 
-Una vez completado el deploy, la aplicación está disponible en:
+La aplicación estará disponible en:
 
 ```
-https://reservehub-app.azurewebsites.net
+https://reservehub.spaincentral.cloudapp.azure.com
 ```
 
-Azure gestiona HTTPS automáticamente.
+Para actualizar el código en producción basta con:
+
+```bash
+cd ~/ProyectoFinal_ATSWM
+git pull
+sudo systemctl restart reservehub
+```

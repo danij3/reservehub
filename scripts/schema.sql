@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nombre         VARCHAR(100)  NOT NULL,
     email          VARCHAR(150)  NOT NULL UNIQUE,
     password       VARCHAR(255)  NOT NULL,
-    rol            VARCHAR(30)   NOT NULL DEFAULT 'user',
+    rol            VARCHAR(30)   NOT NULL DEFAULT 'user'
+                                 CHECK (rol IN ('user', 'admin')),
     fecha_creacion DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS recursos (
     descripcion  TEXT,
     disponible   BOOLEAN      NOT NULL DEFAULT TRUE,
     capacidad    INT          NOT NULL DEFAULT 1,
-    categoria_id INT,
+    categoria_id INT          NOT NULL,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
 );
 
@@ -54,7 +55,8 @@ CREATE TABLE IF NOT EXISTS reservas (
     fecha_reserva DATE        NOT NULL,
     hora_inicio   TIME        NOT NULL,
     hora_fin      TIME        NOT NULL,
-    estado        VARCHAR(30) NOT NULL DEFAULT 'pendiente',
+    estado        VARCHAR(30) NOT NULL DEFAULT 'pendiente'
+                              CHECK (estado IN ('pendiente', 'confirmada', 'cancelada')),
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
     FOREIGN KEY (recurso_id) REFERENCES recursos(id) ON DELETE CASCADE,
     INDEX idx_fecha_recurso (fecha_reserva, recurso_id)

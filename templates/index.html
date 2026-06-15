@@ -1,163 +1,318 @@
 <!doctype html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ReserveHub</title>
-  <link rel="stylesheet" href="/static/css/styles.css" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReserveHub</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="navbar">
+      <div class="container nav-content">
+        <h1 class="logo">ReserveHub</h1>
 
-<!-- ═══════════════════════════════════════════════════════════
-     NAVBAR
-════════════════════════════════════════════════════════════ -->
-<header class="navbar">
-  <div class="container nav-content">
-    <h1 class="logo">ReserveHub</h1>
-
-    <!-- Estado: no autenticado -->
-    <div id="nav-guest">
-      <button class="btn-text" onclick="abrirModalAuth('login')">Iniciar Sesión</button>
-    </div>
-
-    <!-- Estado: autenticado -->
-    <div id="nav-user" class="nav-user" style="display:none">
-      <span class="nav-user-name" id="nav-nombre"></span>
-      <button class="btn-nav-secondary" onclick="abrirMisReservas()">Mis Reservas</button>
-      <button class="btn-nav-danger"    onclick="cerrarSesion()">Cerrar Sesión</button>
-    </div>
-  </div>
-</header>
-
-<!-- ═══════════════════════════════════════════════════════════
-     MAIN
-════════════════════════════════════════════════════════════ -->
-<main class="container">
-  <section class="filtros-section">
-    <h2>¿Qué necesitas reservar hoy?</h2>
-    <div id="categorias-container" class="categorias-scroll"></div>
-  </section>
-
-  <section id="recursos-grid" class="grid-recursos"></section>
-</main>
-
-<!-- ═══════════════════════════════════════════════════════════
-     MODAL – Reservar recurso
-════════════════════════════════════════════════════════════ -->
-<div id="modal-reserva" class="modal oculto">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>Reservar Recurso</h2>
-      <button id="close-modal" class="btn-close">&times;</button>
-    </div>
-
-    <div id="modal-recurso-info" class="recurso-info-box"></div>
-
-    <div id="form-msg-reserva" class="form-msg"></div>
-
-    <form id="form-reserva">
-      <div class="form-group">
-        <label for="fecha">Fecha</label>
-        <input type="date" id="fecha" required />
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label for="hora-inicio">Hora Inicio</label>
-          <input type="time" id="hora-inicio" required />
+        <!-- Estado: no autenticado -->
+        <div id="nav-guest">
+          <button class="btn-text" onclick="abrirModalAuth('login')">
+            Iniciar Sesión
+          </button>
         </div>
-        <div class="form-group">
-          <label for="hora-fin">Hora Fin</label>
-          <input type="time" id="hora-fin" required />
+
+        <!-- Estado: autenticado -->
+        <div id="nav-user" class="nav-user" style="display: none">
+          <button class="btn-perfil" id="btn-perfil" onclick="abrirPerfil()">
+            <span class="perfil-avatar" id="nav-avatar"></span>
+            <span id="nav-nombre"></span>
+          </button>
+          <button class="btn-nav-secondary" onclick="cambiarUsuario()">
+            Cambiar de Usuario
+          </button>
+          <button class="btn-nav-danger" onclick="cerrarSesion()">
+            Cerrar Sesión
+          </button>
         </div>
       </div>
-      <button type="submit" class="btn-primary" id="btn-confirmar-reserva">Confirmar Reserva</button>
-    </form>
-  </div>
-</div>
+    </header>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MODAL – Autenticación (Login / Registro)
-════════════════════════════════════════════════════════════ -->
-<div id="modal-auth" class="modal oculto">
-  <div class="modal-content wide">
-    <div class="modal-header">
-      <h2 id="auth-titulo">Acceder</h2>
-      <button class="btn-close" onclick="cerrarModalAuth()">&times;</button>
+    <!-- Main -->
+    <main class="container">
+      <section class="filtros-section">
+        <div class="filtros-row">
+          <h2>¿Qué necesitas reservar hoy?</h2>
+          <div class="vista-toggle" role="group" aria-label="Cambiar vista">
+            <button
+              class="btn-vista activa"
+              id="btn-grid"
+              onclick="setVista('grid')"
+              title="Cuadrícula">
+              <svg
+                width="18"
+                height="15"
+                viewBox="0 0 15 12"
+                fill="currentColor">
+                <rect width="4" height="4" rx=".5" />
+                <rect x="5.5" width="4" height="4" rx=".5" />
+                <rect x="11" width="4" height="4" rx=".5" />
+                <rect y="8" width="4" height="4" rx=".5" />
+                <rect x="5.5" y="8" width="4" height="4" rx=".5" />
+                <rect x="11" y="8" width="4" height="4" rx=".5" />
+              </svg>
+            </button>
+            <button
+              class="btn-vista"
+              id="btn-lista"
+              onclick="setVista('lista')"
+              title="Lista">
+              <svg
+                width="17"
+                height="15"
+                viewBox="0 0 14 12"
+                fill="currentColor">
+                <rect width="4" height="3" rx=".5" />
+                <rect x="5.5" y=".75" width="8.5" height="1.5" rx=".5" />
+                <rect y="4.5" width="4" height="3" rx=".5" />
+                <rect x="5.5" y="5.25" width="8.5" height="1.5" rx=".5" />
+                <rect y="9" width="4" height="3" rx=".5" />
+                <rect x="5.5" y="9.75" width="8.5" height="1.5" rx=".5" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="categorias-container" class="categorias-scroll"></div>
+      </section>
+
+      <section id="recursos-grid" class="grid-recursos"></section>
+    </main>
+
+    <!-- Modal Reserva -->
+    <div id="modal-reserva" class="modal oculto">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Reservar Recurso</h2>
+          <button id="close-modal" class="btn-close">&times;</button>
+        </div>
+
+        <div id="modal-recurso-info" class="recurso-info-box"></div>
+
+        <div id="form-msg-reserva" class="form-msg"></div>
+
+        <form id="form-reserva">
+          <div class="form-group">
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" required />
+          </div>
+
+          <!-- timeline de disponibilidad: aparece al seleccionar fecha -->
+          <div
+            id="timeline-container"
+            class="timeline-container"
+            style="display: none">
+            <div class="timeline-header">
+              <span class="timeline-label">Disponibilidad</span>
+              <span class="timeline-legend">
+                <span class="legend-item"
+                  ><span class="legend-dot libre-dot"></span>Libre</span
+                >
+                <span class="legend-item"
+                  ><span class="legend-dot ocupado-dot"></span>Ocupado</span
+                >
+              </span>
+            </div>
+            <div id="timeline-slots" class="timeline-slots"></div>
+            <p id="timeline-hint" class="timeline-hint">
+              Pulsa un bloque libre para fijar el inicio
+            </p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="hora-inicio">Hora Inicio</label>
+              <input type="time" id="hora-inicio" required />
+            </div>
+            <div class="form-group">
+              <label for="hora-fin">Hora Fin</label>
+              <input type="time" id="hora-fin" required />
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="btn-confirmar-reserva">
+            Confirmar Reserva
+          </button>
+        </form>
+      </div>
     </div>
 
-    <!-- Pestañas -->
-    <div class="auth-tabs">
-      <button class="auth-tab activa" id="tab-login"    onclick="cambiarTab('login')">Iniciar Sesión</button>
-      <button class="auth-tab"        id="tab-register" onclick="cambiarTab('register')">Crear Cuenta</button>
+    <!-- Modal Autenticación -->
+    <div id="modal-auth" class="modal oculto">
+      <div class="modal-content wide">
+        <div class="modal-header">
+          <h2 id="auth-titulo">Acceder</h2>
+          <button class="btn-close" onclick="cerrarModalAuth()">&times;</button>
+        </div>
+
+        <!-- Pestañas -->
+        <div class="auth-tabs">
+          <button
+            class="auth-tab activa"
+            id="tab-login"
+            onclick="cambiarTab('login')">
+            Iniciar Sesión
+          </button>
+          <button
+            class="auth-tab"
+            id="tab-register"
+            onclick="cambiarTab('register')">
+            Crear Cuenta
+          </button>
+        </div>
+
+        <!-- Panel Login -->
+        <div class="auth-panel activo" id="panel-login">
+          <div id="msg-login" class="form-msg"></div>
+          <form id="form-login" onsubmit="submitLogin(event)">
+            <div class="form-group">
+              <label for="login-email">Email</label>
+              <input
+                type="email"
+                id="login-email"
+                placeholder="tu@email.com"
+                required />
+            </div>
+            <div class="form-group">
+              <label for="login-password">Contraseña</label>
+              <input
+                type="password"
+                id="login-password"
+                placeholder="••••••••"
+                required />
+            </div>
+            <button type="submit" class="btn-primary" id="btn-login">
+              Entrar
+            </button>
+          </form>
+          <p
+            style="
+              text-align: center;
+              margin-top: 1rem;
+              font-size: 0.875rem;
+              color: var(--text-muted);
+            ">
+            ¿No tienes cuenta?
+            <a
+              href="#"
+              onclick="
+                cambiarTab('register');
+                return false;
+              "
+              style="color: var(--primary); font-weight: 600"
+              >Regístrate</a
+            >
+          </p>
+        </div>
+
+        <!-- Panel Registro -->
+        <div class="auth-panel" id="panel-register">
+          <div id="msg-register" class="form-msg"></div>
+          <form id="form-register" onsubmit="submitRegister(event)">
+            <div class="form-group">
+              <label for="reg-nombre">Nombre</label>
+              <input
+                type="text"
+                id="reg-nombre"
+                placeholder="Tu nombre"
+                required />
+            </div>
+            <div class="form-group">
+              <label for="reg-email">Email</label>
+              <input
+                type="email"
+                id="reg-email"
+                placeholder="tu@email.com"
+                required />
+            </div>
+            <div class="form-group">
+              <label for="reg-password"
+                >Contraseña
+                <small style="color: var(--text-muted)"
+                  >(mín. 6 caracteres)</small
+                ></label
+              >
+              <input
+                type="password"
+                id="reg-password"
+                placeholder="••••••••"
+                required />
+            </div>
+            <button type="submit" class="btn-primary" id="btn-register">
+              Crear Cuenta
+            </button>
+          </form>
+          <p
+            style="
+              text-align: center;
+              margin-top: 1rem;
+              font-size: 0.875rem;
+              color: var(--text-muted);
+            ">
+            ¿Ya tienes cuenta?
+            <a
+              href="#"
+              onclick="
+                cambiarTab('login');
+                return false;
+              "
+              style="color: var(--primary); font-weight: 600"
+              >Inicia sesión</a
+            >
+          </p>
+        </div>
+      </div>
     </div>
 
-    <!-- Panel Login -->
-    <div class="auth-panel activo" id="panel-login">
-      <div id="msg-login" class="form-msg"></div>
-      <form id="form-login" onsubmit="submitLogin(event)">
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="tu@email.com" required />
+    <!-- Modal Mis Reservas -->
+    <div id="modal-mis-reservas" class="modal oculto">
+      <div class="modal-content reservas-content">
+        <div class="modal-header">
+          <h2>Mis Reservas</h2>
+          <button class="btn-close" onclick="cerrarMisReservas()">
+            &times;
+          </button>
         </div>
-        <div class="form-group">
-          <label for="login-password">Contraseña</label>
-          <input type="password" id="login-password" placeholder="••••••••" required />
-        </div>
-        <button type="submit" class="btn-primary" id="btn-login">Entrar</button>
-      </form>
-      <p style="text-align:center;margin-top:1rem;font-size:.875rem;color:var(--text-muted)">
-        ¿No tienes cuenta?
-        <a href="#" onclick="cambiarTab('register');return false"
-           style="color:var(--primary);font-weight:600">Regístrate</a>
-      </p>
+        <div id="reservas-list" class="reservas-list"></div>
+      </div>
     </div>
 
-    <!-- Panel Registro -->
-    <div class="auth-panel" id="panel-register">
-      <div id="msg-register" class="form-msg"></div>
-      <form id="form-register" onsubmit="submitRegister(event)">
-        <div class="form-group">
-          <label for="reg-nombre">Nombre</label>
-          <input type="text" id="reg-nombre" placeholder="Tu nombre" required />
+    <!-- Modal Perfil de usuario -->
+    <div id="modal-perfil" class="modal oculto">
+      <div class="modal-content perfil-content">
+        <div class="modal-header">
+          <h2>Mi Perfil</h2>
+          <button class="btn-close" onclick="cerrarPerfil()">&times;</button>
         </div>
-        <div class="form-group">
-          <label for="reg-email">Email</label>
-          <input type="email" id="reg-email" placeholder="tu@email.com" required />
+        <div class="perfil-body">
+          <div class="perfil-avatar-grande" id="perfil-avatar-grande"></div>
+          <div class="perfil-nombre" id="perfil-nombre"></div>
+          <div class="perfil-email" id="perfil-email"></div>
+          <div class="perfil-rol" id="perfil-rol"></div>
         </div>
-        <div class="form-group">
-          <label for="reg-password">Contraseña <small style="color:var(--text-muted)">(mín. 6 caracteres)</small></label>
-          <input type="password" id="reg-password" placeholder="••••••••" required />
+        <div class="perfil-reservas-section">
+          <p class="perfil-section-title">Mis reservas</p>
+          <div id="perfil-reservas-list" class="perfil-reservas-list"></div>
         </div>
-        <button type="submit" class="btn-primary" id="btn-register">Crear Cuenta</button>
-      </form>
-      <p style="text-align:center;margin-top:1rem;font-size:.875rem;color:var(--text-muted)">
-        ¿Ya tienes cuenta?
-        <a href="#" onclick="cambiarTab('login');return false"
-           style="color:var(--primary);font-weight:600">Inicia sesión</a>
-      </p>
+      </div>
     </div>
 
-  </div>
-</div>
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     MODAL – Mis Reservas
-════════════════════════════════════════════════════════════ -->
-<div id="modal-mis-reservas" class="modal oculto">
-  <div class="modal-content reservas-content">
-    <div class="modal-header">
-      <h2>Mis Reservas</h2>
-      <button class="btn-close" onclick="cerrarMisReservas()">&times;</button>
-    </div>
-    <div id="reservas-list" class="reservas-list"></div>
-  </div>
-</div>
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container footer-content">
+        <span class="footer-logo">ReserveHub</span>
+        <span class="footer-copy">Gestión de espacios y recursos</span>
+      </div>
+    </footer>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TOAST CONTAINER
-════════════════════════════════════════════════════════════ -->
-<div id="toast-container"></div>
-
-<script src="/static/js/app.js"></script>
-</body>
+    <script src="/static/js/app.js"></script>
+  </body>
 </html>

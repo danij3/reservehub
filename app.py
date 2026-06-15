@@ -40,6 +40,13 @@ def create_app():
     app.register_blueprint(reservas_bp,   url_prefix='/api/reservas')
     app.register_blueprint(sesiones_bp,   url_prefix='/api/sesiones')
 
+    # Servir imágenes desde la carpeta /imgs/
+    imgs_dir = os.path.join(os.path.dirname(__file__), 'imgs')
+
+    @app.route('/imgs/<path:filename>')
+    def serve_img(filename):
+        return send_from_directory(imgs_dir, filename)
+
     # Servir el frontend desde /templates
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')
