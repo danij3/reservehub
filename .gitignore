@@ -1,0 +1,19 @@
+# Entornos virtuales de Python (se recrean en cada máquina con requirements.txt)
+venv/
+.venv/
+env/
+ENV/
+
+# Variables de entorno con credenciales — nunca se sube al repo
+.env
+
+# Cache de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
