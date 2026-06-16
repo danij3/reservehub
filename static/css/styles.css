@@ -478,16 +478,25 @@ main {
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
   display: none;
+  align-items: center;
+  gap: 0.6rem;
+}
+.form-msg-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 0.4rem;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .form-msg.error {
   background: #fee2e2;
   color: #b91c1c;
-  display: block;
+  display: flex;
 }
 .form-msg.success {
   background: #dcfce7;
   color: #15803d;
-  display: block;
+  display: flex;
 }
 
 /*Modal Mis Reservas*/

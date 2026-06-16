@@ -557,6 +557,7 @@ async function submitLogin(e) {
       "msg-login",
       err.data?.error || "Credenciales incorrectas.",
       "error",
+      "/imgs/2.jpg",
     );
   } finally {
     btn.disabled = false;
@@ -702,11 +703,18 @@ window.cancelarReserva = async function (id) {
 };
 
 // muestra un mensaje de error o éxito debajo de un formulario
-function setFormMsg(id, msg, tipo) {
+// si se pasa "imagen", se muestra una miniatura junto al texto
+function setFormMsg(id, msg, tipo, imagen) {
   const el = document.getElementById(id);
   if (!el) return;
-  el.textContent = msg;
   el.className = `form-msg${msg ? " " + tipo : ""}`;
+  if (msg && imagen) {
+    el.innerHTML = `
+      <img src="${imagen}" alt="" class="form-msg-img" />
+      <span>${msg}</span>`;
+  } else {
+    el.textContent = msg;
+  }
 }
 
 // arranque: carga categorías y recursos al abrir la página
