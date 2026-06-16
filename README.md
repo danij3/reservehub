@@ -360,7 +360,7 @@ El despliegue usa una máquina virtual Ubuntu en Azure con NGINX como reverse pr
 3. Crea una **Virtual Machine**:
    - Imagen: **Ubuntu Server 22.04 LTS – x64 Gen2**
    - Tamaño: **Standard_B2ats_v2** (elegible para cuenta gratuita)
-   - Autenticación: usuario + contraseña (anótalos)
+   - Autenticación: usuario + contraseña. Usa **`administrador`** como nombre de usuario (los pasos 2 y 9 de esta guía asumen ese nombre; si usas otro, sustitúyelo en el resto del documento).
    - Puertos de entrada: **SSH (22)**, **HTTP (80)**, **HTTPS (443)**
 4. Una vez creada, ve a la VM → **DNS name** → asigna un nombre DNS (ej. `reservehub`). Quedará algo como `reservehub.spaincentral.cloudapp.azure.com`.
 
@@ -438,19 +438,21 @@ cat ~/.ssh/id_ed25519.pub
 
 Copia la clave pública y añádela en GitHub → Settings → SSH and GPG keys → New SSH key.
 
-Clona el repositorio:
+Clona el repositorio (el repo en GitHub es `reservehub`, no la carpeta del proyecto de la universidad):
 
 ```bash
 cd ~
-git clone git@github.com:tu-usuario/ProyectoFinal_ATSWM.git
+git clone git@github.com:tu-usuario/reservehub.git
 ```
+
+Esto crea `~/reservehub` directamente — no hay carpeta intermedia.
 
 ---
 
 ### Paso 7 — Instalar dependencias Python y configurar el entorno
 
 ```bash
-cd ~/ProyectoFinal_ATSWM/reservehub
+cd ~/reservehub
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -501,8 +503,8 @@ After=network.target
 
 [Service]
 User=administrador
-WorkingDirectory=/home/administrador/ProyectoFinal_ATSWM/reservehub
-ExecStart=/home/administrador/ProyectoFinal_ATSWM/reservehub/venv/bin/gunicorn \
+WorkingDirectory=/home/administrador/reservehub
+ExecStart=/home/administrador/reservehub/venv/bin/gunicorn \
           --workers 2 --bind 127.0.0.1:8000 --timeout 120 app:app
 Restart=always
 
@@ -571,7 +573,7 @@ https://reservehub.spaincentral.cloudapp.azure.com
 Para actualizar el código en producción basta con:
 
 ```bash
-cd ~/ProyectoFinal_ATSWM
+cd ~/reservehub
 git pull
 sudo systemctl restart reservehub
 ```
