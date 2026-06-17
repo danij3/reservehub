@@ -280,6 +280,11 @@ async function abrirPerfil() {
   document.getElementById("modal-perfil").classList.remove("oculto");
 
   // carga las reservas del usuario en segundo plano
+  await cargarMisReservas();
+}
+
+// carga y renderiza la lista de reservas del usuario dentro del perfil
+async function cargarMisReservas() {
   const lista = document.getElementById("perfil-reservas-list");
   lista.innerHTML =
     '<p class="empty-state" style="padding:.5rem 0;font-size:.8rem">Cargando…</p>';
@@ -306,19 +311,52 @@ async function abrirPerfil() {
             ? "var(--text-muted)"
             : "#b45309"; // pendiente: ámbar
 
+      const puedeCancelar = r.estado !== "cancelada";
+
       item.innerHTML = `
         <div class="perfil-reserva-info">
           <div class="perfil-reserva-nombre">${r.recurso_nombre}</div>
           <div class="perfil-reserva-detalle">${r.fecha_reserva} · ${r.hora_inicio}–${r.hora_fin}</div>
         </div>
-        <span style="font-size:.7rem;font-weight:700;color:${dotColor};white-space:nowrap;text-transform:capitalize">
-          ${r.estado}
-        </span>`;
+        <div class="perfil-reserva-estado-wrap">
+          <span style="font-size:.7rem;font-weight:700;color:${dotColor};white-space:nowrap;text-transform:capitalize">
+            ${r.estado}
+          </span>
+          ${puedeCancelar ? '<button type="button" class="btn-cancelar-reserva">Cancelar</button>' : ""}
+        </div>`;
+
+      if (puedeCancelar) {
+        item
+          .querySelector(".btn-cancelar-reserva")
+          .addEventListener("click", (e) => cancelarReserva(r.id, e.currentTarget));
+      }
+
       lista.appendChild(item);
     });
   } catch {
     lista.innerHTML =
       '<p class="empty-state" style="padding:.5rem 0;font-size:.8rem">No se pudieron cargar.</p>';
+  }
+}
+
+// cancela una reserva propia y refresca la lista del perfil
+async function cancelarReserva(id, btn) {
+  if (!confirm("¿Seguro que quieres cancelar esta reserva?")) return;
+
+  btn.disabled = true;
+  btn.textContent = "Cancelando…";
+
+  try {
+    await apiFetch(`/reservas/${id}/estado`, {
+      method: "PATCH",
+      body: JSON.stringify({ estado: "cancelada" }),
+    });
+    mostrarToast("Reserva cancelada.", "success");
+    await cargarMisReservas();
+  } catch (err) {
+    mostrarToast(err?.data?.error || "No se pudo cancelar la reserva.", "error");
+    btn.disabled = false;
+    btn.textContent = "Cancelar";
   }
 }
 

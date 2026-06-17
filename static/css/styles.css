@@ -664,6 +664,32 @@ main {
   color: var(--text-muted);
   margin-top: 0.1rem;
 }
+.perfil-reserva-estado-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.btn-cancelar-reserva {
+  background: none;
+  border: 1px solid var(--danger);
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--danger);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.btn-cancelar-reserva:hover {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-cancelar-reserva:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 /*Footer*/
 .footer {
