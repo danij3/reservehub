@@ -34,6 +34,11 @@ CREATE TABLE IF NOT EXISTS categorias (
 -- ------------------------------------------------------------
 -- Tabla: recursos
 -- Nota: 'capacidad' añadido para mostrar aforo en el frontend
+-- Nota: 'imagen' guarda solo el nombre de archivo dentro de /imgs/
+--       (p.ej. '4_cisco.jpg'); si no se sube imagen al crear la sala
+--       se usa '2.jpg' por defecto.
+-- Nota: 'numero_sala' es el número/identificador de la sala dentro
+--       de su categoría (p.ej. "4"); es NULL para salas antiguas.
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS recursos (
     id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,6 +47,8 @@ CREATE TABLE IF NOT EXISTS recursos (
     disponible   BOOLEAN      NOT NULL DEFAULT TRUE,
     capacidad    INT          NOT NULL DEFAULT 1,
     categoria_id INT          NOT NULL,
+    imagen       VARCHAR(255) NOT NULL DEFAULT '2.jpg',
+    numero_sala  VARCHAR(20)  NULL,
     FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE RESTRICT
 );
 

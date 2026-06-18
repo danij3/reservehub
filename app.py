@@ -24,6 +24,8 @@ def create_app():
         template_folder='templates',
     )
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-inseguro')
+    # Límite de tamaño de subida (imágenes de salas) para evitar abusos: 5 MB
+    app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 
     # CORS: necesario si frontend y backend están en puertos distintos en local.
     # En producción (servidos juntos) no hace falta, pero no perjudica.
@@ -46,6 +48,13 @@ def create_app():
     @app.route('/imgs/<path:filename>')
     def serve_img(filename):
         return send_from_directory(imgs_dir, filename)
+
+    # Panel de administración: página HTML separada de la SPA principal.
+    # La protección real de los datos está en los endpoints /api/* (admin_required);
+    # esta ruta solo entrega el HTML, y admin.js redirige si el usuario no es admin.
+    @app.route('/admin')
+    def serve_admin():
+        return send_from_directory(app.template_folder, 'admin.html')
 
     # Servir el frontend desde /templates
     @app.route('/', defaults={'path': ''})

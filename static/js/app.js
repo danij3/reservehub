@@ -188,36 +188,29 @@ function resetTimeline() {
   }
 }
 
-// funciones de autenticación: guardar y leer el token de localStorage
-function getToken() {
-  return localStorage.getItem("reservehub_token");
-}
+// funciones de autenticación. La sesión real vive en una cookie httpOnly que
+// pone el servidor (no es accesible desde JS); aquí solo se cachea en
+// localStorage el perfil del usuario (datos no sensibles) para pintar la UI
+// sin tener que llamar a /auth/me en cada carga.
 function getUsuario() {
   return JSON.parse(localStorage.getItem("reservehub_user") || "null");
 }
 
-function setAuth(token, usuario) {
-  localStorage.setItem("reservehub_token", token);
+function setAuth(usuario) {
   localStorage.setItem("reservehub_user", JSON.stringify(usuario));
   actualizarNavbar();
 }
 
 function clearAuth() {
-  localStorage.removeItem("reservehub_token");
   localStorage.removeItem("reservehub_user");
   actualizarNavbar();
 }
 
-function authHeaders() {
-  const t = getToken();
-  return t
-    ? { Authorization: `Bearer ${t}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-}
-
-// wrapper de fetch que añade el token y gestiona errores de sesión
+// wrapper de fetch: incluye la cookie de sesión (same-origin) y gestiona
+// errores de sesión expirada/ausente
 async function apiFetch(path, options = {}) {
-  options.headers = { ...authHeaders(), ...(options.headers || {}) };
+  options.headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  options.credentials = "same-origin";
   const res = await fetch(API + path, options);
 
   if (res.status === 401) {
@@ -262,6 +255,9 @@ function actualizarNavbar() {
     document.getElementById("nav-nombre").textContent = user.nombre;
     document.getElementById("nav-avatar").textContent = iniciales(user.nombre);
   }
+  // el enlace al panel admin solo se muestra a usuarios con rol admin
+  document.getElementById("nav-admin-link").style.display =
+    user && user.rol === "admin" ? "" : "none";
 }
 
 // abre el modal de perfil con los datos del usuario y carga sus reservas
@@ -328,7 +324,9 @@ async function cargarMisReservas() {
       if (puedeCancelar) {
         item
           .querySelector(".btn-cancelar-reserva")
-          .addEventListener("click", (e) => cancelarReserva(r.id, e.currentTarget));
+          .addEventListener("click", (e) =>
+            cancelarReserva(r.id, e.currentTarget),
+          );
       }
 
       lista.appendChild(item);
@@ -354,7 +352,10 @@ async function cancelarReserva(id, btn) {
     mostrarToast("Reserva cancelada.", "success");
     await cargarMisReservas();
   } catch (err) {
-    mostrarToast(err?.data?.error || "No se pudo cancelar la reserva.", "error");
+    mostrarToast(
+      err?.data?.error || "No se pudo cancelar la reserva.",
+      "error",
+    );
     btn.disabled = false;
     btn.textContent = "Cancelar";
   }
@@ -437,8 +438,12 @@ function renderRecursos(recursos) {
       ? `onclick="abrirModal(${recurso.id})"`
       : "disabled";
 
-    // cabecera con imagen si existe, fondo verde oscuro si no
-    const imgUrl = ROOM_IMAGES[recurso.nombre];
+    // cabecera con imagen: prioriza el mapa hardcodeado de salas conocidas,
+    // y si no hay coincidencia usa la imagen que venga de la API (recurso.imagen,
+    // p.ej. para salas creadas desde el panel admin); si tampoco hay, fondo de color.
+    const imgUrl =
+      ROOM_IMAGES[recurso.nombre] ||
+      (recurso.imagen ? `/imgs/${recurso.imagen}` : null);
     const isProyector = recurso.nombre === "Proyector Portátil";
     const imgStyle = imgUrl
       ? `background-image: url('${imgUrl}'); background-size: cover; background-position: center;`
@@ -464,7 +469,7 @@ function renderRecursos(recursos) {
 // abre el modal de reserva para el recurso seleccionado
 window.abrirModal = function (idRecurso) {
   // si no hay sesión, pedir que inicie sesión antes de reservar
-  if (!getToken()) {
+  if (!getUsuario()) {
     mostrarToast("Debes iniciar sesión para reservar.", "info");
     abrirModalAuth("login");
     return;
@@ -587,7 +592,7 @@ async function submitLogin(e) {
         password: document.getElementById("login-password").value,
       }),
     });
-    setAuth(res.token, res.usuario);
+    setAuth(res.usuario);
     cerrarModalAuth();
     mostrarToast(`Bienvenido, ${res.usuario.nombre}!`, "success");
   } catch (err) {
@@ -686,9 +691,27 @@ function setFormMsg(id, msg, tipo, imagen) {
   }
 }
 
+// si venimos de una redirección del panel admin (usuario sin rol admin),
+// mostramos el aviso y limpiamos el parámetro de la URL
+function comprobarAccesoDenegado() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("acceso_denegado")) {
+    mostrarToast(
+      "Acceso denegado: necesitas permisos de administrador.",
+      "error",
+    );
+    params.delete("acceso_denegado");
+    const query = params.toString();
+    const nuevaUrl =
+      window.location.pathname + (query ? `?${query}` : "");
+    window.history.replaceState({}, "", nuevaUrl);
+  }
+}
+
 // arranque: carga categorías y recursos al abrir la página
 async function init() {
   actualizarNavbar();
+  comprobarAccesoDenegado();
   await cargarCategorias();
 
   try {

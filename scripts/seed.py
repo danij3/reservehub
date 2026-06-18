@@ -44,7 +44,7 @@ cur.execute(
 )
 cur.execute(
     'INSERT IGNORE INTO usuarios (nombre, email, password, rol) VALUES (%s,%s,%s,%s)',
-    ('Usuario Prueba', 'user@example.com', user_hash, 'user')
+    ('Usuario Prueba', 'user@reservehub.com', user_hash, 'user')
 )
 
 # recursos de ejemplo, asignados a las categorías por nombre
@@ -77,4 +77,4 @@ conn.close()
 
 print('Seed completado.')
 print('   admin@reservehub.com  / admin123  (rol: admin)')
-print('   user@example.com      / user123   (rol: user)')
+print('   user@reservehub.com      / user123   (rol: user)')

@@ -17,19 +17,50 @@ _SELECT = (
 )
 
 
-# admin ve todas las reservas; usuario normal solo ve las suyas
+# admin ve todas las reservas (con filtros opcionales para el panel admin);
+# usuario normal solo ve las suyas, sin importar qué filtros pida
 
 @reservas_bp.route('', methods=['GET'])
 @login_required
 def list_reservas():
     u = g.current_user
+    conditions, params = [], []
+
+    recurso_id = request.args.get('recurso_id')
+    if recurso_id:
+        try:
+            conditions.append('rv.recurso_id = %s')
+            params.append(int(recurso_id))
+        except ValueError:
+            return jsonify({'error': 'recurso_id no válido'}), 400
+
+    fecha = request.args.get('fecha_reserva')
+    if fecha:
+        conditions.append('rv.fecha_reserva = %s')
+        params.append(fecha)
+
     if u['rol'] == 'admin':
-        rows = query_db(_SELECT + 'ORDER BY rv.fecha_reserva DESC, rv.hora_inicio')
+        # solo el admin puede filtrar por usuario; un usuario normal que
+        # pase este parámetro lo ignora (ver bloque else más abajo)
+        usuario_id = request.args.get('usuario_id')
+        if usuario_id:
+            try:
+                conditions.append('rv.usuario_id = %s')
+                params.append(int(usuario_id))
+            except ValueError:
+                return jsonify({'error': 'usuario_id no válido'}), 400
     else:
-        rows = query_db(
-            _SELECT + 'WHERE rv.usuario_id=%s ORDER BY rv.fecha_reserva DESC, rv.hora_inicio',
-            (u['id'],)
-        )
+        # un usuario normal solo puede ver sus propias reservas, sin importar
+        # lo que pida por query string (evita escalada de privilegios)
+        conditions.append('rv.usuario_id = %s')
+        params.append(u['id'])
+
+    sql = _SELECT
+    if conditions:
+        sql += 'WHERE ' + ' AND '.join(conditions)
+    sql += ' ORDER BY rv.fecha_reserva DESC, rv.hora_inicio'
+
+    rows = query_db(sql, tuple(params))
     return jsonify(rows), 200
 
 

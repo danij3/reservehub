@@ -36,9 +36,12 @@ reservehub/
 ├── imgs/                ← imágenes de las salas (servidas en /imgs/<nombre>)
 ├── static/
 │   ├── css/styles.css
-│   └── js/app.js
+│   └── js/
+│       ├── app.js       ← lógica de la SPA principal (login, reservas, etc.)
+│       └── admin.js     ← lógica del panel de administración
 ├── templates/
-│   └── index.html
+│   ├── index.html       ← SPA principal
+│   └── admin.html       ← panel de administración (ruta /admin)
 └── scripts/
     ├── schema.sql       ← DDL de la base de datos
     └── seed.py          ← datos de prueba
@@ -103,7 +106,7 @@ Crea automáticamente estas cuentas:
 | Email                | Contraseña | Rol   |
 | -------------------- | ---------- | ----- |
 | admin@reservehub.com | admin123   | admin |
-| user@example.com     | user123    | user  |
+| user@reservehub.com  | user123    | user  |
 
 **Paso 5 — Arrancar el servidor**
 
@@ -226,6 +229,8 @@ erDiagram
         boolean disponible
         int     capacidad
         int     categoria_id FK
+        varchar imagen
+        varchar numero_sala
     }
 
     RESERVAS {
@@ -264,13 +269,15 @@ erDiagram
 
 **Índices adicionales:**
 - `idx_fecha_recurso (fecha_reserva, recurso_id)` en `reservas` → acelera la comprobación de solapamiento de franjas.
-- `idx_token` y `idx_expiration` en `sesiones` → acelera la validación del Bearer token en cada petición.
+- `idx_token` y `idx_expiration` en `sesiones` → acelera la validación del token de sesión en cada petición.
 
 ---
 
 ## 6. Endpoints de la API
 
-Todos los endpoints van con el prefijo `/api`. Los protegidos requieren el header `Authorization: Bearer <token>`.
+Todos los endpoints van con el prefijo `/api`. Los protegidos requieren sesión activa: el navegador la envía automáticamente mediante la cookie httpOnly `reservehub_session` que pone `/api/auth/login` (no hace falta añadir cabeceras manualmente). Como alternativa para clientes no-navegador (curl/Postman), también se admite el header `Authorization: Bearer <token>`.
+
+Además de la API, `GET /admin` sirve la página HTML del panel de administración (`admin.html` + `admin.js`); no es un endpoint de datos, solo entrega la interfaz. La protección real sigue estando en cada endpoint `/api/*` (decorador `admin_required`); si un usuario sin rol admin fuerza esa URL, `admin.js` lo redirige y, aunque no lo hiciera, el servidor rechazaría sus peticiones con 403.
 
 ### /api/auth
 
@@ -329,6 +336,8 @@ Filtros en la lista: `?categoria_id=1&disponible=true`
 Body del POST: `{ recurso_id, fecha_reserva, hora_inicio, hora_fin }`  
 Estados: `pendiente` · `confirmada` · `cancelada`
 
+Filtros en `GET /api/reservas` (panel admin): `?recurso_id=1&fecha_reserva=2026-06-19&usuario_id=3`. Un usuario normal solo ve sus propias reservas aunque pase estos parámetros; `usuario_id` solo lo aplica el admin.
+
 ### /api/sesiones
 
 | Método | Ruta                        | Auth  |
@@ -341,7 +350,13 @@ Estados: `pendiente` · `confirmada` · `cancelada`
 
 ## 7. Autenticación
 
-Al hacer login, el servidor genera un token aleatorio con `secrets.token_urlsafe(32)` y lo guarda en la tabla `sesiones` con expiración de 24 horas. El frontend lo almacena en `localStorage` y lo envía en cada petición protegida como `Bearer <token>`. Al hacer logout, la fila de `sesiones` se elimina directamente, invalidando el token.
+Al hacer login, el servidor genera un token aleatorio con `secrets.token_urlsafe(32)`, lo guarda en la tabla `sesiones` con expiración de 24 horas, y lo envía al navegador en una **cookie de sesión httpOnly** (`reservehub_session`, vía `Set-Cookie`). El token nunca aparece en el cuerpo de la respuesta JSON ni se guarda en `localStorage`, por lo que JavaScript no puede leerlo (mitiga robo de sesión por XSS).
+
+En cada petición protegida, el navegador adjunta la cookie automáticamente (`fetch(..., { credentials: 'same-origin' })` en el frontend) y el servidor valida el token contra la tabla `sesiones`. La cookie se marca `SameSite=Lax` para mitigar CSRF y `Secure` en producción (exige HTTPS; se desactiva solo con `FLASK_ENV=development` para poder probar en local por http).
+
+El frontend sí guarda en `localStorage` el perfil del usuario (`id`, `nombre`, `rol`) devuelto por `/login` — son datos no sensibles, usados únicamente para pintar la navbar y el guard de acceso al panel admin; la autorización real siempre se revalida en el servidor a partir de la cookie.
+
+Al hacer logout, la fila de `sesiones` se elimina y la cookie se borra (`Set-Cookie` con expiración inmediata), invalidando el token.
 
 Las contraseñas se almacenan hasheadas con PBKDF2-SHA256 y nunca se devuelven en ninguna respuesta de la API.
 

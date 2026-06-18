@@ -1,4 +1,6 @@
-# auth.py - Login, registro y logout. Los tokens se guardan en la tabla sesiones.
+# auth.py - Login, registro y logout. Los tokens se guardan en la tabla sesiones
+# y se gestionan mediante una cookie de sesión httpOnly (no localStorage).
+import os
 import re
 import secrets
 import functools
@@ -13,10 +15,22 @@ auth_bp = Blueprint('auth', __name__)
 
 TOKEN_EXPIRY_HOURS = 24
 
+# Nombre de la cookie de sesión. httpOnly evita que JavaScript pueda leerla
+# (mitiga robo de sesión vía XSS); Secure exige HTTPS y solo se desactiva en
+# desarrollo local (FLASK_ENV=development) para poder probar por http.
+SESSION_COOKIE_NAME = 'reservehub_session'
+COOKIE_SECURE = os.environ.get('FLASK_ENV') != 'development'
+
 
 # helpers de autenticación
 
-def get_token_from_header():
+def get_session_token():
+    """Lee el token de sesión: primero de la cookie httpOnly (flujo normal del
+    navegador); si no hay cookie, admite la cabecera Authorization: Bearer
+    como alternativa para clientes no-navegador (curl/Postman)."""
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if token:
+        return token
     header = request.headers.get('Authorization', '')
     if header.startswith('Bearer '):
         return header[7:].strip()
@@ -25,7 +39,7 @@ def get_token_from_header():
 
 def get_current_user():
     """Devuelve el dict del usuario si el token es válido, o None."""
-    token = get_token_from_header()
+    token = get_session_token()
     if not token:
         return None
     now = datetime.utcnow()
@@ -113,22 +127,36 @@ def login():
         (user['id'], token, expiry)
     )
 
-    return jsonify({
-        'token': token,
+    resp = jsonify({
         'usuario': {
             'id':     user['id'],
             'nombre': user['nombre'],
             'rol':    user['rol'],
         }
-    }), 200
+    })
+    # La sesión vive en una cookie httpOnly: el navegador la envía solo en
+    # peticiones same-origin y JavaScript no puede leerla ni guardarla en
+    # localStorage, por lo que ya no se devuelve el token en el cuerpo JSON.
+    resp.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        max_age=TOKEN_EXPIRY_HOURS * 3600,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite='Lax',
+        path='/',
+    )
+    return resp, 200
 
 
 @auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    token = get_token_from_header()
+    token = get_session_token()
     query_db('DELETE FROM sesiones WHERE token = %s', (token,))
-    return jsonify({'message': 'Sesión cerrada correctamente'}), 200
+    resp = jsonify({'message': 'Sesión cerrada correctamente'})
+    resp.delete_cookie(SESSION_COOKIE_NAME, path='/')
+    return resp, 200
 
 
 @auth_bp.route('/me', methods=['GET'])

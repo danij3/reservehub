@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ReserveHub · Panel Admin</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body class="admin-body">
+    <!-- Header diferenciado del panel de administración -->
+    <header class="navbar navbar-admin">
+      <div class="container nav-content">
+        <div class="logo-admin-wrap">
+          <h1 class="logo logo-admin">ReserveHub</h1>
+          <span class="badge-admin">ADMIN</span>
+        </div>
+
+        <div class="nav-user">
+          <span id="admin-nombre" class="nav-user-name nav-user-name-admin"></span>
+          <a class="btn-nav-secondary btn-nav-secondary-admin" href="/"
+            >Volver al sitio</a
+          >
+          <button
+            class="btn-nav-danger btn-nav-danger-admin"
+            onclick="cerrarSesionAdmin()">
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container admin-main">
+      <!-- Sección: reservas agrupadas por sala -->
+      <section class="admin-section">
+        <h2 class="admin-section-title">Reservas por sala</h2>
+
+        <div class="admin-filtros-row">
+          <div class="form-group">
+            <label for="filtro-sala">Sala</label>
+            <select id="filtro-sala">
+              <option value="">Todas las salas</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="filtro-fecha">Fecha</label>
+            <input type="date" id="filtro-fecha" />
+          </div>
+          <div class="form-group">
+            <label for="filtro-usuario">Usuario</label>
+            <select id="filtro-usuario">
+              <option value="">Todos los usuarios</option>
+            </select>
+          </div>
+          <button
+            type="button"
+            class="btn-nav-secondary admin-btn-limpiar"
+            id="btn-limpiar-filtros">
+            Limpiar filtros
+          </button>
+        </div>
+
+        <div id="admin-reservas-grouped" class="admin-reservas-grouped">
+          <p class="empty-state">Cargando…</p>
+        </div>
+      </section>
+
+      <!-- Sección: creación de nuevas salas -->
+      <section class="admin-section">
+        <h2 class="admin-section-title">Crear nueva sala</h2>
+
+        <div id="msg-nueva-sala" class="form-msg"></div>
+
+        <form
+          id="form-nueva-sala"
+          class="admin-form-sala"
+          enctype="multipart/form-data">
+          <div class="admin-form-imagen">
+            <img
+              id="preview-imagen-sala"
+              class="admin-img-preview"
+              src="/imgs/2.jpg"
+              alt="Vista previa de la sala" />
+            <div class="form-group admin-form-imagen-input">
+              <label for="sala-imagen">Imagen de la sala</label>
+              <input
+                type="file"
+                id="sala-imagen"
+                name="imagen"
+                accept="image/jpeg,image/png,image/gif,image/webp" />
+              <small class="admin-form-hint"
+                >Si no se sube ninguna imagen, se usará una imagen por
+                defecto.</small
+              >
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="sala-nombre">Título</label>
+            <input
+              type="text"
+              id="sala-nombre"
+              name="nombre"
+              placeholder="Nombre de la sala"
+              required />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sala-categoria">Categoría</label>
+              <select id="sala-categoria" name="categoria_id" required>
+                <option value="">Selecciona una categoría</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sala-numero">Nº de sala</label>
+              <input
+                type="text"
+                id="sala-numero"
+                name="numero_sala"
+                placeholder="Nº de sala"
+                required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="sala-descripcion">Descripción</label>
+            <textarea
+              id="sala-descripcion"
+              name="descripcion"
+              rows="3"
+              placeholder="Descripción breve de la sala..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="sala-capacidad">Capacidad</label>
+              <input
+                type="number"
+                id="sala-capacidad"
+                name="capacidad"
+                min="1"
+                value="1" />
+            </div>
+            <div class="form-group">
+              <label for="sala-disponible">Disponible</label>
+              <select id="sala-disponible" name="disponible">
+                <option value="true" selected>Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" id="btn-crear-sala">
+            Crear sala
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toast-container"></div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="container footer-content">
+        <span class="footer-logo">ReserveHub</span>
+        <span class="footer-copy">Panel de administración</span>
+      </div>
+    </footer>
+
+    <script src="/static/js/admin.js"></script>
+  </body>
+</html>
