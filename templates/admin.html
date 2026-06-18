@@ -59,8 +59,56 @@
           </button>
         </div>
 
+        <div class="admin-bulk-row">
+          <span class="admin-bulk-label"
+            >Acciones masivas sobre las reservas filtradas:</span
+          >
+          <button
+            type="button"
+            class="admin-btn-accion admin-btn-aprobar"
+            id="btn-aprobar-todas">
+            Aprobar todas
+          </button>
+          <button
+            type="button"
+            class="admin-btn-accion admin-btn-cancelar"
+            id="btn-cancelar-todas">
+            Cancelar todas
+          </button>
+          <button
+            type="button"
+            class="admin-btn-accion admin-btn-borrar"
+            id="btn-borrar-todas">
+            Borrar todas
+          </button>
+        </div>
+
         <div id="admin-reservas-grouped" class="admin-reservas-grouped">
           <p class="empty-state">Cargando…</p>
+        </div>
+      </section>
+
+      <!-- Sección: gestión de salas existentes -->
+      <section class="admin-section">
+        <h2 class="admin-section-title">Gestión de salas</h2>
+        <div class="admin-tabla-wrap">
+          <table class="admin-tabla-reservas">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Nº sala</th>
+                <th>Capacidad</th>
+                <th>Disponible</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="admin-salas-tbody">
+              <tr>
+                <td colspan="6" class="empty-state">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -154,6 +202,28 @@
             Crear sala
           </button>
         </form>
+      </section>
+
+      <!-- Sección: gestión de usuarios -->
+      <section class="admin-section">
+        <h2 class="admin-section-title">Gestión de usuarios</h2>
+        <div class="admin-tabla-wrap">
+          <table class="admin-tabla-reservas">
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Email</th>
+                <th>Rol</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="admin-usuarios-tbody">
+              <tr>
+                <td colspan="4" class="empty-state">Cargando…</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
 

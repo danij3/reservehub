@@ -92,13 +92,28 @@ def update_usuario(uid):
 
 
 # elimina un usuario (solo admin)
+# Protecciones: un admin no puede borrarse a sí mismo (evita que se quede sin
+# acceso a su propia gestión a media operación) ni borrar al último admin
+# restante (evitaría que el sistema se quede sin ningún administrador).
 
 @usuarios_bp.route('/<int:uid>', methods=['DELETE'])
 @admin_required
 def delete_usuario(uid):
-    row = query_db('SELECT id FROM usuarios WHERE id = %s', (uid,), one=True)
+    row = query_db('SELECT id, rol FROM usuarios WHERE id = %s', (uid,), one=True)
     if not row:
         return jsonify({'error': 'Usuario no encontrado'}), 404
+
+    current = get_current_user()
+    if current and current['id'] == uid:
+        return jsonify({'error': 'No puedes eliminar tu propia cuenta'}), 403
+
+    if row['rol'] == 'admin':
+        total_admins = query_db(
+            "SELECT COUNT(*) AS n FROM usuarios WHERE rol = 'admin'", one=True
+        )['n']
+        if total_admins <= 1:
+            return jsonify({'error': 'No se puede eliminar al único administrador'}), 409
+
     query_db('DELETE FROM usuarios WHERE id = %s', (uid,))
     return jsonify({'message': 'Usuario eliminado'}), 200
 

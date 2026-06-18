@@ -981,6 +981,22 @@ main {
   height: 2.4rem;
 }
 
+/* acciones masivas sobre las reservas filtradas */
+.admin-bulk-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.admin-bulk-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .admin-reservas-grouped {
   display: flex;
   flex-direction: column;

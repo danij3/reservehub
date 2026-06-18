@@ -103,6 +103,7 @@ function comprobarAcceso() {
 let salasGlobales = [];
 let usuariosGlobales = [];
 let categoriasGlobales = [];
+let reservasActuales = []; // última lista cargada en "Reservas por sala" (para las acciones masivas)
 
 // carga las salas, usuarios y categorías necesarias para poblar los <select>
 async function cargarSalasYUsuarios() {
@@ -128,6 +129,8 @@ async function cargarSalasYUsuarios() {
   poblarSelectSalas();
   poblarSelectUsuarios();
   poblarSelectCategorias();
+  renderSalasAdmin();
+  renderUsuariosAdmin();
 }
 
 function poblarSelectSalas() {
@@ -193,8 +196,10 @@ async function cargarReservasAdmin() {
 
   try {
     const reservas = await apiFetch("/reservas" + (qs ? `?${qs}` : ""));
+    reservasActuales = reservas;
     renderReservasAgrupadas(reservas);
   } catch {
+    reservasActuales = [];
     container.innerHTML =
       '<p class="empty-state">No se pudieron cargar las reservas.</p>';
   }
@@ -341,6 +346,196 @@ document.getElementById("btn-limpiar-filtros").addEventListener("click", () => {
   document.getElementById("filtro-usuario").value = "";
   cargarReservasAdmin();
 });
+
+// --- Acciones masivas sobre las reservas actualmente filtradas ---
+// Reutilizan los mismos endpoints que las acciones por fila (no hay un
+// endpoint "bulk" en el backend); aquí solo se orquestan en paralelo.
+async function ejecutarAccionMasiva(ids, peticionFn, etiquetaExito) {
+  const resultados = await Promise.allSettled(ids.map(peticionFn));
+  const fallidos = resultados.filter((r) => r.status === "rejected").length;
+  const ok = resultados.length - fallidos;
+  mostrarToast(
+    fallidos
+      ? `${ok} ${etiquetaExito}, ${fallidos} fallaron.`
+      : `${ok} ${etiquetaExito}.`,
+    fallidos ? "error" : "success",
+  );
+  await cargarReservasAdmin();
+}
+
+document.getElementById("btn-aprobar-todas").addEventListener("click", () => {
+  const ids = reservasActuales
+    .filter((r) => r.estado !== "confirmada")
+    .map((r) => r.id);
+  if (!ids.length) {
+    mostrarToast("No hay reservas pendientes de aprobar.", "info");
+    return;
+  }
+  if (!confirm(`¿Aprobar ${ids.length} reserva(s)?`)) return;
+  ejecutarAccionMasiva(
+    ids,
+    (id) =>
+      apiFetch(`/reservas/${id}/estado`, {
+        method: "PATCH",
+        body: JSON.stringify({ estado: "confirmada" }),
+      }),
+    "reserva(s) aprobada(s)",
+  );
+});
+
+document.getElementById("btn-cancelar-todas").addEventListener("click", () => {
+  const ids = reservasActuales
+    .filter((r) => r.estado !== "cancelada")
+    .map((r) => r.id);
+  if (!ids.length) {
+    mostrarToast("No hay reservas activas que cancelar.", "info");
+    return;
+  }
+  if (!confirm(`¿Cancelar ${ids.length} reserva(s)?`)) return;
+  ejecutarAccionMasiva(
+    ids,
+    (id) =>
+      apiFetch(`/reservas/${id}/estado`, {
+        method: "PATCH",
+        body: JSON.stringify({ estado: "cancelada" }),
+      }),
+    "reserva(s) cancelada(s)",
+  );
+});
+
+document.getElementById("btn-borrar-todas").addEventListener("click", () => {
+  const ids = reservasActuales.map((r) => r.id);
+  if (!ids.length) {
+    mostrarToast("No hay reservas para borrar.", "info");
+    return;
+  }
+  const confirmado = confirm(
+    `¿Borrar permanentemente ${ids.length} reserva(s)? Esta acción no se puede deshacer.`,
+  );
+  if (!confirmado) return;
+  ejecutarAccionMasiva(
+    ids,
+    (id) => apiFetch(`/reservas/${id}`, { method: "DELETE" }),
+    "reserva(s) eliminada(s)",
+  );
+});
+
+// --- Gestión de salas existentes (borrado) ---
+
+function renderSalasAdmin() {
+  const tbody = document.getElementById("admin-salas-tbody");
+  if (!tbody) return;
+
+  if (!salasGlobales.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="6" class="empty-state">No hay salas registradas.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = salasGlobales
+    .map(
+      (s) => `
+    <tr>
+      <td>${s.nombre}</td>
+      <td>${s.categoria}</td>
+      <td>${s.numero_sala || "—"}</td>
+      <td>${s.capacidad}</td>
+      <td>${s.disponible ? "Sí" : "No"}</td>
+      <td class="admin-acciones-cell">
+        <button type="button" class="admin-btn-accion admin-btn-borrar" data-id="${s.id}">Borrar</button>
+      </td>
+    </tr>`,
+    )
+    .join("");
+}
+
+document
+  .getElementById("admin-salas-tbody")
+  .addEventListener("click", async (e) => {
+    const btn = e.target.closest(".admin-btn-borrar");
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    const sala = salasGlobales.find((s) => s.id === id);
+
+    const confirmado = confirm(
+      `¿Borrar la sala "${
+        sala ? sala.nombre : id
+      }" de forma permanente? También se eliminarán todas sus reservas asociadas. Esta acción no se puede deshacer.`,
+    );
+    if (!confirmado) return;
+
+    try {
+      await apiFetch(`/recursos/${id}`, { method: "DELETE" });
+      mostrarToast("Sala eliminada permanentemente.", "success");
+      await cargarSalasYUsuarios();
+      await cargarReservasAdmin();
+    } catch (err) {
+      mostrarToast(err?.data?.error || "No se pudo eliminar la sala.", "error");
+    }
+  });
+
+// --- Gestión de usuarios (borrado) ---
+// El propio admin nunca ve un botón de borrar en su propia fila; el backend
+// además rechaza borrarse a sí mismo o al último admin (defensa en profundidad).
+
+function renderUsuariosAdmin() {
+  const tbody = document.getElementById("admin-usuarios-tbody");
+  if (!tbody) return;
+
+  if (!usuariosGlobales.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="4" class="empty-state">No hay usuarios registrados.</td></tr>';
+    return;
+  }
+
+  const yo = getUsuario();
+  tbody.innerHTML = usuariosGlobales
+    .map((u) => {
+      const esYo = yo && yo.id === u.id;
+      return `
+    <tr>
+      <td>${u.nombre}</td>
+      <td>${u.email}</td>
+      <td>${u.rol}</td>
+      <td class="admin-acciones-cell">
+        ${
+          esYo
+            ? '<span class="admin-sala-meta">Tu cuenta</span>'
+            : `<button type="button" class="admin-btn-accion admin-btn-borrar" data-id="${u.id}">Borrar</button>`
+        }
+      </td>
+    </tr>`;
+    })
+    .join("");
+}
+
+document
+  .getElementById("admin-usuarios-tbody")
+  .addEventListener("click", async (e) => {
+    const btn = e.target.closest(".admin-btn-borrar");
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    const usuario = usuariosGlobales.find((u) => u.id === id);
+
+    const confirmado = confirm(
+      `¿Borrar al usuario "${
+        usuario ? usuario.nombre : id
+      }" de forma permanente? También se eliminarán sus reservas. Esta acción no se puede deshacer.`,
+    );
+    if (!confirmado) return;
+
+    try {
+      await apiFetch(`/usuarios/${id}`, { method: "DELETE" });
+      mostrarToast("Usuario eliminado permanentemente.", "success");
+      await cargarSalasYUsuarios();
+      await cargarReservasAdmin();
+    } catch (err) {
+      mostrarToast(
+        err?.data?.error || "No se pudo eliminar el usuario.",
+        "error",
+      );
+    }
+  });
 
 // --- Vista previa de la imagen seleccionada ---
 document.getElementById("sala-imagen").addEventListener("change", (e) => {

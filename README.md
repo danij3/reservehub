@@ -43,8 +43,9 @@ reservehub/
 │   ├── index.html       ← SPA principal
 │   └── admin.html       ← panel de administración (ruta /admin)
 └── scripts/
-    ├── schema.sql       ← DDL de la base de datos
-    └── seed.py          ← datos de prueba
+    ├── schema.sql                      ← DDL de la base de datos
+    ├── seed.py                         ← datos de prueba
+    └── fix_numero_sala_default.sql     ← fix puntual: numero_sala de las 5 salas seed antiguas
 ```
 
 ---
@@ -107,6 +108,12 @@ Crea automáticamente estas cuentas:
 | -------------------- | ---------- | ----- |
 | admin@reservehub.com | admin123   | admin |
 | user@reservehub.com  | user123    | user  |
+
+`seed.py` usa `INSERT IGNORE`, así que solo inserta filas en una base de datos vacía — no actualiza filas ya existentes. Si tu base de datos se seedeó con una versión antigua del script (las 5 salas de ejemplo aparecen sin `numero_sala` en el panel admin), ejecuta una vez:
+
+```bash
+mysql -u root -p reservehub < scripts/fix_numero_sala_default.sql
+```
 
 **Paso 5 — Arrancar el servidor**
 
@@ -279,6 +286,8 @@ Todos los endpoints van con el prefijo `/api`. Los protegidos requieren sesión 
 
 Además de la API, `GET /admin` sirve la página HTML del panel de administración (`admin.html` + `admin.js`); no es un endpoint de datos, solo entrega la interfaz. La protección real sigue estando en cada endpoint `/api/*` (decorador `admin_required`); si un usuario sin rol admin fuerza esa URL, `admin.js` lo redirige y, aunque no lo hiciera, el servidor rechazaría sus peticiones con 403.
 
+El panel admin tiene cuatro secciones: **Reservas por sala** (tabla agrupada con Aprobar/Cancelar/Borrar por fila, filtros, y botones de **acción masiva** que aplican la acción a todas las reservas actualmente filtradas), **Gestión de salas** (lista de salas existentes con botón Borrar — elimina también sus reservas por el `ON DELETE CASCADE` de `recurso_id`), **Crear nueva sala**, y **Gestión de usuarios** (lista de usuarios con botón Borrar; un admin nunca ve el botón en su propia fila). No existe un endpoint "bulk" en el backend: las acciones masivas solo orquestan en paralelo (`Promise.allSettled`) las mismas llamadas `PATCH /api/reservas/{id}/estado` y `DELETE /api/reservas/{id}` que ya usan los botones por fila.
+
 ### /api/auth
 
 | Método | Ruta               | Auth  |
@@ -297,6 +306,8 @@ Además de la API, `GET /admin` sirve la página HTML del panel de administraci�
 | PUT    | /api/usuarios/{id}     | Admin o propio |
 | DELETE | /api/usuarios/{id}     | Admin          |
 | PATCH  | /api/usuarios/{id}/rol | Admin          |
+
+`DELETE /api/usuarios/{id}` rechaza dos casos aunque quien llame sea admin: borrar la propia cuenta (403) y borrar al último admin restante (409) — evita que el sistema se quede sin ningún administrador.
 
 ### /api/categorias
 

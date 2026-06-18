@@ -48,20 +48,22 @@ cur.execute(
 )
 
 # recursos de ejemplo, asignados a las categorías por nombre
+# (numero_sala incluido desde el principio para que una BD nueva no
+# necesite el script fix_numero_sala_default.sql)
 recursos = [
-    ('Sala de Estudio A',   'Mesa redonda, pizarra, 4 sillas',    True,  4,   'Salas de Estudio'),
-    ('Laboratorio Cisco',   'Racks con routers y switches',        True,  15,  'Laboratorios'),
-    ('Aula Magna',          'Proyector 4K, sistema de audio',      False, 100, 'Aulas'),
-    ('Sala de Reuniones B', 'Pantalla interactiva, videollamada',  True,  8,   'Salas de Estudio'),
-    ('Proyector Portátil',  'Conexión HDMI y USB-C',               True,  1,   'Material'),
+    ('Sala de Estudio A',   'Mesa redonda, pizarra, 4 sillas',    True,  4,   'Salas de Estudio', '101'),
+    ('Laboratorio Cisco',   'Racks con routers y switches',        True,  15,  'Laboratorios',      '201'),
+    ('Aula Magna',          'Proyector 4K, sistema de audio',      False, 100, 'Aulas',              '301'),
+    ('Sala de Reuniones B', 'Pantalla interactiva, videollamada',  True,  8,   'Salas de Estudio', '102'),
+    ('Proyector Portátil',  'Conexión HDMI y USB-C',               True,  1,   'Material',           'M-01'),
 ]
 
-for nombre, desc, disponible, capacidad, cat_nombre in recursos:
+for nombre, desc, disponible, capacidad, cat_nombre, numero_sala in recursos:
     cur.execute(
         'INSERT IGNORE INTO recursos '
-        '(nombre, descripcion, disponible, capacidad, categoria_id) '
-        'VALUES (%s, %s, %s, %s, (SELECT id FROM categorias WHERE nombre=%s))',
-        (nombre, desc, disponible, capacidad, cat_nombre)
+        '(nombre, descripcion, disponible, capacidad, categoria_id, numero_sala) '
+        'VALUES (%s, %s, %s, %s, (SELECT id FROM categorias WHERE nombre=%s), %s)',
+        (nombre, desc, disponible, capacidad, cat_nombre, numero_sala)
     )
 
 # reserva de ejemplo para el usuario de prueba
