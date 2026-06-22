@@ -11,6 +11,9 @@
   --danger: #c0392b;
   --danger-hover: #a93226;
   --success: #1a7a3c;
+  --success-hover: #145c2e;
+  --warning: #b45309;
+  --warning-hover: #92400e;
 }
 
 * {
@@ -213,6 +216,44 @@ main {
 /* vista lista: una sola columna */
 .grid-recursos.vista-lista {
   grid-template-columns: 1fr;
+}
+
+/* paginación de listados de salas (cuadrícula pública y tabla de admin) */
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 0 0 3rem;
+}
+.btn-paginacion {
+  border: none;
+  background: none;
+  padding: 0.25rem 0.4rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.btn-paginacion:hover:not(:disabled) {
+  background: none;
+  color: white;
+}
+.btn-paginacion:disabled {
+  color: var(--border);
+  background: none;
+  cursor: not-allowed;
+}
+.paginacion-info {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: white;
+}
+/* dentro de una tarjeta de admin (.admin-section ya aporta su propio padding
+   inferior) no hace falta el margen extra que sí necesita la página pública */
+.admin-tabla-wrap + .paginacion {
+  margin: 1rem 0 0;
 }
 
 /*Tarjetas*/
@@ -678,7 +719,7 @@ main {
 .btn-cancelar-reserva {
   background: none;
   border: 1px solid var(--danger);
-  border-radius: 0.4rem;
+  border-radius: 0;
   padding: 0.2rem 0.55rem;
   font-size: 0.68rem;
   font-weight: 700;
@@ -1048,14 +1089,14 @@ main {
 
 .admin-estado-badge {
   padding: 0.15rem 0.6rem;
-  border-radius: 999px;
+  border-radius: 0;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: capitalize;
 }
 .admin-estado-pendiente {
   background: #fef3c7;
-  color: #b45309;
+  color: var(--warning);
 }
 .admin-estado-confirmada {
   background: #dcfce7;
@@ -1075,43 +1116,37 @@ main {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+/* Aprobar/Cancelar/Borrar: relleno sólido (no solo contorno) y esquinas
+   rectas a propósito, para que se distingan a simple vista del resto de
+   controles redondeados de la interfaz y entre sí por color/función. */
 .admin-btn-accion {
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 0.4rem;
-  padding: 0.3rem 0.6rem;
+  border: none;
+  border-radius: 0;
+  padding: 0.35rem 0.75rem;
   font-size: 0.72rem;
   font-weight: 600;
+  color: #fff;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+  transition: background 0.15s;
 }
 .admin-btn-aprobar {
-  border-color: var(--success);
-  color: var(--success);
+  background: var(--success);
 }
 .admin-btn-aprobar:hover {
-  background: var(--success);
-  color: #fff;
+  background: var(--success-hover);
 }
 .admin-btn-cancelar {
-  border-color: #b45309;
-  color: #b45309;
+  background: var(--warning);
 }
 .admin-btn-cancelar:hover {
-  background: #b45309;
-  color: #fff;
+  background: var(--warning-hover);
 }
 .admin-btn-borrar {
-  border-color: var(--danger);
-  color: var(--danger);
+  background: var(--danger);
 }
 .admin-btn-borrar:hover {
-  background: var(--danger);
-  color: #fff;
+  background: var(--danger-hover);
 }
 
 /* formulario de creación de sala */

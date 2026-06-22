@@ -105,6 +105,38 @@ let usuariosGlobales = [];
 let categoriasGlobales = [];
 let reservasActuales = []; // última lista cargada en "Reservas por sala" (para las acciones masivas)
 
+// --- Paginación de la tabla "Gestión de salas" ---
+const SALAS_POR_PAGINA = 8;
+let paginaActualSalasAdmin = 1;
+
+// dibuja los controles "‹ Anterior · Página X de Y · Siguiente ›"; idéntico al
+// helper de app.js (admin.html no incluye app.js, ver comentario al inicio del fichero)
+function renderPaginacion(containerId, totalPaginas, paginaActual, onCambiar) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+
+  if (totalPaginas <= 1) {
+    cont.innerHTML = "";
+    return;
+  }
+
+  cont.innerHTML = `
+    <button type="button" class="btn-paginacion" id="${containerId}-prev" aria-label="Anterior" ${
+      paginaActual === 1 ? "disabled" : ""
+    }>‹</button>
+    <span class="paginacion-info">Página ${paginaActual} de ${totalPaginas}</span>
+    <button type="button" class="btn-paginacion" id="${containerId}-next" aria-label="Siguiente" ${
+      paginaActual === totalPaginas ? "disabled" : ""
+    }>›</button>`;
+
+  cont
+    .querySelector(`#${containerId}-prev`)
+    .addEventListener("click", () => onCambiar(paginaActual - 1));
+  cont
+    .querySelector(`#${containerId}-next`)
+    .addEventListener("click", () => onCambiar(paginaActual + 1));
+}
+
 // carga las salas, usuarios y categorías necesarias para poblar los <select>
 async function cargarSalasYUsuarios() {
   try {
@@ -429,10 +461,20 @@ function renderSalasAdmin() {
   if (!salasGlobales.length) {
     tbody.innerHTML =
       '<tr><td colspan="6" class="empty-state">No hay salas registradas.</td></tr>';
+    renderPaginacion("admin-salas-paginacion", 0, 1, cambiarPaginaSalasAdmin);
     return;
   }
 
-  tbody.innerHTML = salasGlobales
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(salasGlobales.length / SALAS_POR_PAGINA),
+  );
+  if (paginaActualSalasAdmin > totalPaginas) paginaActualSalasAdmin = totalPaginas;
+
+  const inicio = (paginaActualSalasAdmin - 1) * SALAS_POR_PAGINA;
+  const pagina = salasGlobales.slice(inicio, inicio + SALAS_POR_PAGINA);
+
+  tbody.innerHTML = pagina
     .map(
       (s) => `
     <tr>
@@ -447,6 +489,18 @@ function renderSalasAdmin() {
     </tr>`,
     )
     .join("");
+
+  renderPaginacion(
+    "admin-salas-paginacion",
+    totalPaginas,
+    paginaActualSalasAdmin,
+    cambiarPaginaSalasAdmin,
+  );
+}
+
+function cambiarPaginaSalasAdmin(nuevaPagina) {
+  paginaActualSalasAdmin = nuevaPagina;
+  renderSalasAdmin();
 }
 
 document

@@ -7,6 +7,11 @@ let recursosGlobales = [];
 let categoriasGlobales = [];
 let recursoSeleccionado = null;
 
+// --- Paginación de la cuadrícula de salas ---
+const SALAS_POR_PAGINA = 6; // 2 filas x 3 columnas en vista cuadrícula
+let recursosFiltradosActuales = []; // lista actualmente filtrada (antes de paginar)
+let paginaActualSalas = 1;
+
 // estado del timeline de disponibilidad
 let slotStart = null; // índice del primer slot seleccionado
 let slotEnd = null; // índice del segundo slot seleccionado
@@ -420,17 +425,45 @@ function filtrarPorCategoria(categoria) {
   }
 }
 
+// punto de entrada: fija la lista filtrada activa, vuelve a la página 1 y dibuja
 function renderRecursos(recursos) {
+  recursosFiltradosActuales = recursos;
+  paginaActualSalas = 1;
+  dibujarPaginaSalas();
+}
+
+// cambia de página sin tocar el filtro activo
+function cambiarPaginaSalas(nuevaPagina) {
+  paginaActualSalas = nuevaPagina;
+  dibujarPaginaSalas();
+  document
+    .getElementById("recursos-grid")
+    .scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// dibuja solo la página actual de recursosFiltradosActuales + sus controles
+function dibujarPaginaSalas() {
   const grid = document.getElementById("recursos-grid");
+  const recursos = recursosFiltradosActuales;
   grid.innerHTML = "";
 
   if (recursos.length === 0) {
     grid.innerHTML =
       '<p class="empty-state">No hay recursos disponibles para este filtro.</p>';
+    renderPaginacion("recursos-paginacion", 0, 1, cambiarPaginaSalas);
     return;
   }
 
-  recursos.forEach((recurso) => {
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(recursos.length / SALAS_POR_PAGINA),
+  );
+  if (paginaActualSalas > totalPaginas) paginaActualSalas = totalPaginas;
+
+  const inicio = (paginaActualSalas - 1) * SALAS_POR_PAGINA;
+  const pagina = recursos.slice(inicio, inicio + SALAS_POR_PAGINA);
+
+  pagina.forEach((recurso) => {
     const card = document.createElement("div");
     card.className = "card";
 
@@ -445,8 +478,18 @@ function renderRecursos(recursos) {
       ROOM_IMAGES[recurso.nombre] ||
       (recurso.imagen ? `/imgs/${recurso.imagen}` : null);
     const isProyector = recurso.nombre === "Proyector Portátil";
+    // la imagen por defecto del backend cuando no se sube ninguna ("2.jpg")
+    // tiene mucho margen blanco alrededor del gato: si se recorta con
+    // "cover" igual que las fotos a sangre completa, se ve recortada/ampliada
+    // de forma distinta a las demás. Se muestra con "contain" para que el
+    // gato salga completo, dentro de la misma caja de tamaño fijo (135px)
+    // que usan todas las tarjetas, así el tamaño es igual en todas.
+    const esImagenPorDefecto =
+      recurso.imagen === "2.jpg" && !ROOM_IMAGES[recurso.nombre];
     const imgStyle = imgUrl
-      ? `background-image: url('${imgUrl}'); background-size: cover; background-position: center;`
+      ? esImagenPorDefecto
+        ? `background-image: url('${imgUrl}'); background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #fff;`
+        : `background-image: url('${imgUrl}'); background-size: cover; background-position: center;`
       : "background: var(--primary-hover);";
     const imgClass = isProyector ? "card-img card-img-proyector" : "card-img";
 
@@ -464,6 +507,41 @@ function renderRecursos(recursos) {
       </button>`;
     grid.appendChild(card);
   });
+
+  renderPaginacion(
+    "recursos-paginacion",
+    totalPaginas,
+    paginaActualSalas,
+    cambiarPaginaSalas,
+  );
+}
+
+// dibuja los controles "‹ Anterior · Página X de Y · Siguiente ›" dentro del
+// contenedor indicado; se reutiliza tanto aquí como en el panel admin
+function renderPaginacion(containerId, totalPaginas, paginaActual, onCambiar) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+
+  if (totalPaginas <= 1) {
+    cont.innerHTML = "";
+    return;
+  }
+
+  cont.innerHTML = `
+    <button type="button" class="btn-paginacion" id="${containerId}-prev" aria-label="Anterior" ${
+      paginaActual === 1 ? "disabled" : ""
+    }>‹</button>
+    <span class="paginacion-info">Página ${paginaActual} de ${totalPaginas}</span>
+    <button type="button" class="btn-paginacion" id="${containerId}-next" aria-label="Siguiente" ${
+      paginaActual === totalPaginas ? "disabled" : ""
+    }>›</button>`;
+
+  cont
+    .querySelector(`#${containerId}-prev`)
+    .addEventListener("click", () => onCambiar(paginaActual - 1));
+  cont
+    .querySelector(`#${containerId}-next`)
+    .addEventListener("click", () => onCambiar(paginaActual + 1));
 }
 
 // abre el modal de reserva para el recurso seleccionado
