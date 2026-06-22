@@ -1,8 +1,8 @@
-<svg width="680" height="1022" viewBox="0 0 680 1022" xmlns="http://www.w3.org/2000/svg" role="img">
-<title>Diagrama de clases UML completo: roles, ternaria de reservas, disponibilidad y autenticación</title>
-<desc>Usuario se especializa en Admin y User (generalización disjunta y completa) con operaciones de login, logout y registro. Recurso incluye una operación de disponibilidad. Relación ternaria entre Usuario, Recurso y Fecha mediante el rombo "Se_reserva", con la clase de asociación Reserva (atributos y operaciones cancelar/eliminar) unida por línea discontinua. Notas explican las peticiones a base de datos.</desc>
+<svg width="880" height="1022" viewBox="0 0 880 1022" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>Diagrama de clases UML completo: roles, sesión activa, ternaria de reservas, disponibilidad y autenticación</title>
+<desc>Usuario se especializa en Admin y User (generalización disjunta y completa) con operaciones de login, logout y registro. Usuario se vincula a Sesion mediante composición 1 a 0..* (la sesión se persiste en servidor y se identifica por cookie httpOnly). Recurso incluye el atributo activo y una operación de disponibilidad. Relación ternaria entre Usuario, Recurso y Fecha mediante el rombo "Se_reserva", con la clase de asociación Reserva (atributos y operaciones cancelar/eliminar) unida por línea discontinua; el borrado en cascada de Recurso implica composición con Reserva. Notas explican las peticiones a base de datos.</desc>
 
-<rect x="0" y="0" width="680" height="1022" fill="white"/>
+<rect x="0" y="0" width="880" height="1022" fill="white"/>
 
 <!-- ===== Usuario (superclase) ===== -->
 <rect x="240" y="40" width="200" height="176" fill="white" stroke="black" stroke-width="1"/>
@@ -26,6 +26,33 @@
 <text x="472" y="114" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">registrar(): INSERT</text>
 <text x="472" y="128" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">INTO usuarios</text>
 <line x1="440" y1="128" x2="460" y2="98" stroke="black" stroke-width="1" stroke-dasharray="3,3"/>
+
+<!-- ===== Sesion (entidad de sesión activa) ===== -->
+<rect x="660" y="120" width="180" height="144" fill="white" stroke="black" stroke-width="1"/>
+<line x1="660" y1="148" x2="840" y2="148" stroke="black" stroke-width="1"/>
+<line x1="660" y1="214" x2="840" y2="214" stroke="black" stroke-width="1"/>
+<text x="750" y="134" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="black">Sesion</text>
+<text x="672" y="166" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- token : String</text>
+<text x="672" y="182" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- fechaExpiracion : DateTime</text>
+<text x="672" y="198" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- creadoEn : DateTime</text>
+<text x="672" y="232" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">+ esValida() : boolean</text>
+<text x="672" y="248" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">+ cerrar() : void</text>
+
+<!-- Composición Usuario / Sesion (rombo relleno = composición) -->
+<polygon points="440,160 447,153 454,160 447,167" fill="black" stroke="black" stroke-width="1"/>
+<line x1="454" y1="160" x2="660" y2="160" stroke="black" stroke-width="1"/>
+<text x="444" y="148" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">1</text>
+<text x="545" y="148" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">tiene_activas</text>
+<text x="622" y="148" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">0..*</text>
+
+<!-- Nota: persistencia de Sesion -->
+<path d="M660,290 H812 L826,304 V380 H660 Z" fill="white" stroke="black" stroke-width="1"/>
+<path d="M812,290 V304 H826" fill="none" stroke="black" stroke-width="1"/>
+<text x="672" y="308" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">Se guarda en el servidor;</text>
+<text x="672" y="322" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">se identifica con cookie</text>
+<text x="672" y="336" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">httpOnly (no accesible</text>
+<text x="672" y="350" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">desde JS). Expira en 24h.</text>
+<line x1="750" y1="264" x2="750" y2="290" stroke="black" stroke-width="1" stroke-dasharray="3,3"/>
 
 <!-- Generalización Usuario -> Admin / User -->
 <polygon points="340,216 322,236 358,236" fill="white" stroke="black" stroke-width="1"/>
@@ -55,14 +82,15 @@
 <text x="467" y="440" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- nombre : String</text>
 
 <!-- ===== Recurso ===== -->
-<rect x="455" y="506" width="180" height="128" fill="white" stroke="black" stroke-width="1"/>
+<rect x="455" y="506" width="180" height="144" fill="white" stroke="black" stroke-width="1"/>
 <line x1="455" y1="534" x2="635" y2="534" stroke="black" stroke-width="1"/>
-<line x1="455" y1="600" x2="635" y2="600" stroke="black" stroke-width="1"/>
+<line x1="455" y1="616" x2="635" y2="616" stroke="black" stroke-width="1"/>
 <text x="545" y="520" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="bold" fill="black">Recurso</text>
 <text x="467" y="552" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- nombre : String</text>
 <text x="467" y="568" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- ubicacion : String</text>
 <text x="467" y="584" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- capacidad : int</text>
-<text x="467" y="618" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">+ disponible() : bool</text>
+<text x="467" y="600" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">- activo : boolean</text>
+<text x="467" y="634" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">+ disponible() : bool</text>
 
 <!-- Pertenece (Categoria-Recurso) -->
 <line x1="545" y1="456" x2="545" y2="506" stroke="black" stroke-width="1"/>
@@ -81,7 +109,7 @@
 
 <!-- ===== Conectores largos hacia la relación ternaria ===== -->
 <path d="M240,128 L70,128 L70,754 L283,754" fill="none" stroke="black" stroke-width="1"/>
-<line x1="545" y1="634" x2="397" y2="754" stroke="black" stroke-width="1"/>
+<line x1="545" y1="650" x2="397" y2="754" stroke="black" stroke-width="1"/>
 
 <!-- ===== Rombo ternario ===== -->
 <polygon points="340,714 397,754 340,794 283,754" fill="white" stroke="black" stroke-width="1.2"/>
@@ -89,6 +117,8 @@
 
 <text x="230" y="742" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">*</text>
 <text x="430" y="704" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">*</text>
+<text x="450" y="672" font-family="Arial, Helvetica, sans-serif" font-size="8" font-style="italic" fill="black">(ON DELETE CASCADE</text>
+<text x="450" y="683" font-family="Arial, Helvetica, sans-serif" font-size="8" font-style="italic" fill="black">= composicion Recurso-Reserva)</text>
 <text x="355" y="798" font-family="Arial, Helvetica, sans-serif" font-size="11" fill="black">0..*</text>
 
 <line x1="340" y1="794" x2="340" y2="806" stroke="black" stroke-width="1"/>

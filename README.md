@@ -17,7 +17,6 @@ Sistema de reservas de recursos universitarios — proyecto final ATSWM.
 7. [Autenticación](#7-autenticación)
 8. [Despliegue en Azure](#8-despliegue-en-azure)
 9. [Paginación de salas (UI)](#9-paginación-de-salas-ui)
-10. [Diagrama de clases (UML)](#10-diagrama-de-clases-uml)
 
 ---
 
@@ -265,6 +264,10 @@ erDiagram
     RECURSOS    ||--o{ RESERVAS  : "es reservado en"
     USUARIOS    ||--o{ SESIONES  : "tiene activas"
 ```
+
+Diagrama de clases UML equivalente, con `Usuario`, `Recurso` y `Fecha` participando en una única asociación ternaria `Se_reserva` (rombo) y `Reserva` como clase de asociación; incluye también roles (`Admin`/`User`), disponibilidad y la entidad `Sesion`:
+
+![Diagrama de clases UML del modelo de datos](diagrama_clases_reserva_ternaria.svg)
 
 **Cardinalidades:**
 - Una categoría puede tener cero o más recursos (`||--o{`).
@@ -652,120 +655,3 @@ sequenceDiagram
 ```
 
 El punto clave del diagrama: navegar entre páginas no genera tráfico de red — los datos ya están en memoria (`recursosFiltradosActuales`), por lo que cambiar de página es instantáneo.
-
----
-
-## 10. Diagrama de clases (UML)
-
-Diagrama de clases UML 2.0 del modelo de dominio (no incluye controladores ni vistas, solo entidades de negocio).
-
-**Roles de usuario:** se modelan mediante **herencia** (`User` abstracta → `Admin` y `RegularUser`) en lugar de un atributo `role` plano, porque cada rol expone un conjunto de operaciones disjunto (solo `Admin` aprueba/borra/gestiona; solo `RegularUser` reserva), lo que se ajusta mejor al polimorfismo de UML que a condicionales sobre un string. El atributo derivado `/role` se conserva únicamente para la serialización en la API.
-
-**Asociaciones clave:**
-- `Room *-- Reservation` (**composición**): el `ON DELETE CASCADE` de `recurso_id` implica que una reserva no puede existir sin su sala.
-- `User *-- Session` (**composición**): el `ON DELETE CASCADE` de `usuario_id` en `sesiones` implica la misma dependencia de ciclo de vida.
-- `Category -- Room` (**asociación simple**): el `ON DELETE RESTRICT` de `categoria_id` impide borrar una categoría con recursos asociados, por lo que no hay dependencia de ciclo de vida (no es composición).
-- `RegularUser -- Reservation` (**asociación simple**): una reserva pertenece a un usuario, pero su ciclo de vida ya queda fijado por la composición con `Room`.
-
-```mermaid
-classDiagram
-    direction TB
-
-    %% ===================== USUARIOS Y ROLES =====================
-    class User {
-        <<abstract>>
-        -id : int
-        -name : string
-        -email : string
-        -passwordHash : string
-        -createdAt : DateTime
-        +/role : string
-        +login(password : string) : Session
-        +logout() : void
-    }
-
-    class Admin {
-        +approveReservation(reservationId : int) : void
-        +cancelReservation(reservationId : int) : void
-        +deleteReservation(reservationId : int) : void
-        +applyBulkAction(reservationIds : int[], action : string) : void
-        +createRoom(name : string, description : string, categoryId : int, capacity : int, roomNumber : string, image : string) : Room
-        +deleteRoom(roomId : int) : void
-        +deleteUser(userId : int) : void
-        +listSessions() : Session[]
-        +closeSession(sessionId : int) : void
-    }
-
-    class RegularUser {
-        +register(name : string, email : string, password : string) : RegularUser
-        +reserve(room : Room, date : Date, startTime : Time, endTime : Time) : Reservation
-        +cancelOwnReservation(reservationId : int) : void
-        +viewMyReservations() : Reservation[]
-    }
-
-    %% ===================== SESION ACTIVA =====================
-    class Session {
-        -id : int
-        -token : string
-        -expiresAt : DateTime
-        -createdAt : DateTime
-        +isValid() : boolean
-        +close() : void
-    }
-
-    %% ===================== RECURSOS =====================
-    class Category {
-        -id : int
-        -name : string
-        -description : string
-    }
-
-    class Room {
-        -id : int
-        -name : string
-        -description : string
-        -capacity : int
-        -roomNumber : string
-        -imageUrl : string
-        -available : boolean
-        +isAvailable(date : Date, startTime : Time, endTime : Time) : boolean
-        +delete() : void
-    }
-
-    %% ===================== RESERVAS =====================
-    class Reservation {
-        -id : int
-        -date : Date
-        -startTime : Time
-        -endTime : Time
-        -status : ReservationStatus
-        -createdAt : DateTime
-        +approve() : void
-        +cancel() : void
-        +delete() : void
-        +isOverlapping(other : Reservation) : boolean
-    }
-
-    class ReservationStatus {
-        <<enumeration>>
-        PENDING
-        CONFIRMED
-        CANCELLED
-    }
-
-    %% ===================== HERENCIA =====================
-    User <|-- Admin
-    User <|-- RegularUser
-
-    %% ===================== ASOCIACIONES =====================
-    User "1" *-- "0..*" Session : tiene activas
-    Category "1" -- "0..*" Room : agrupa
-    Room "1" *-- "0..*" Reservation : compone
-    RegularUser "1" -- "0..*" Reservation : realiza
-    Reservation ..> ReservationStatus : usa
-
-    %% ===================== NOTAS UML =====================
-    note for User "Generalizacion en lugar de un atributo 'role' plano: Admin y RegularUser exponen conjuntos de operaciones disjuntos (solo Admin aprueba/borra/gestiona; solo RegularUser reserva), lo que se modela mejor con polimorfismo (UML) que con condicionales sobre un string. {disjoint, complete}. El atributo derivado /role se conserva solo a efectos de serializacion en la API.<br/>Las contrasenas se almacenan con hash PBKDF2-SHA256 y nunca se exponen en la API."
-    note for Session "Se almacena en el servidor (tabla de sesiones) y se identifica en el cliente mediante una cookie httpOnly (no accesible desde JavaScript) que viaja en cada peticion; el servidor revalida el token contra esta entidad en cada llamada protegida. Expira a las 24h."
-    note for Room "El borrado de una Room elimina en cascada sus Reservation asociadas -> composicion (Room *-- Reservation)."
-```
