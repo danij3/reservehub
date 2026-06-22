@@ -211,75 +211,24 @@ SELECT * FROM usuarios\G
 
 ## 5. Modelo de datos
 
-El diagrama sigue la notación **UML ER** (crow's foot). Renderiza en GitHub y en cualquier editor compatible con Mermaid.
+Diagrama de clases UML 2.0 del modelo de datos, con `Usuario`, `Recurso` y `Fecha` participando en una única asociación ternaria `Se_reserva` (rombo) y `Reserva` como clase de asociación; incluye también roles (`Admin`/`User`), disponibilidad y la entidad `Sesion`:
 
-```mermaid
-erDiagram
-    USUARIOS {
-        int     id             PK
-        varchar nombre
-        varchar email          UK
-        varchar password
-        varchar rol
-        datetime fecha_creacion
-    }
-
-    CATEGORIAS {
-        int     id          PK
-        varchar nombre      UK
-        text    descripcion
-    }
-
-    RECURSOS {
-        int     id           PK
-        varchar nombre
-        text    descripcion
-        boolean disponible
-        int     capacidad
-        int     categoria_id FK
-        varchar imagen
-        varchar numero_sala
-    }
-
-    RESERVAS {
-        int     id            PK
-        int     usuario_id    FK
-        int     recurso_id    FK
-        date    fecha_reserva
-        time    hora_inicio
-        time    hora_fin
-        varchar estado
-    }
-
-    SESIONES {
-        int      id               PK
-        int      usuario_id       FK
-        varchar  token            UK
-        datetime fecha_expiration
-        datetime created_at
-    }
-
-    CATEGORIAS  ||--o{ RECURSOS  : "agrupa"
-    USUARIOS    ||--o{ RESERVAS  : "realiza"
-    RECURSOS    ||--o{ RESERVAS  : "es reservado en"
-    USUARIOS    ||--o{ SESIONES  : "tiene activas"
-```
-
-Diagrama de clases UML equivalente, con `Usuario`, `Recurso` y `Fecha` participando en una única asociación ternaria `Se_reserva` (rombo) y `Reserva` como clase de asociación; incluye también roles (`Admin`/`User`), disponibilidad y la entidad `Sesion`:
-
-![Diagrama de clases UML del modelo de datos](diagrama_clases_reserva_ternaria.svg)
+![Diagrama de clases UML del modelo de datos](diagrama_clases_reserva.svg)
 
 **Cardinalidades:**
+
 - Una categoría puede tener cero o más recursos (`||--o{`).
 - Un usuario puede tener cero o más reservas y cero o más sesiones activas.
 - Un recurso puede aparecer en cero o más reservas.
 
 **Integridad referencial (ON DELETE):**
+
 - `reservas` → CASCADE en `usuario_id` y `recurso_id`: si se elimina un usuario o recurso, sus reservas se eliminan también.
 - `sesiones` → CASCADE en `usuario_id`: las sesiones se eliminan al borrar el usuario.
 - `recursos` → RESTRICT en `categoria_id`: no se puede borrar una categoría que tenga recursos asociados.
 
 **Índices adicionales:**
+
 - `idx_fecha_recurso (fecha_reserva, recurso_id)` en `reservas` → acelera la comprobación de solapamiento de franjas.
 - `idx_token` y `idx_expiration` en `sesiones` → acelera la validación del token de sesión en cada petición.
 
